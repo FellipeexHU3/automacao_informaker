@@ -1,0 +1,6 @@
+# Arquivos que NÃO vão para o GitHub
+.env
+*.xlsx
+*.csv
+__pycache__/
+*.log
