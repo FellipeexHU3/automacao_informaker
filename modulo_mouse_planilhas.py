@@ -75,8 +75,7 @@ def executar_sequencia_navegacao(dados_planilha):
         pyautogui.hotkey('ctrl', 'a')  # Selecionar tudo
         pyautogui.write(str(dados_planilha['comentario']))
         time.sleep(1)
-
-        """ print("🖱️ Clicando no campo de invoice comment...")
+        print("🖱️ Clicando no campo de invoice comment...")
         pyautogui.click(800, 620)  # 📍 Coordenada do campo valor
         time.sleep(1)
         pyautogui.hotkey('ctrl', 'a')  # Selecionar tudo
@@ -118,7 +117,7 @@ def executar_sequencia_navegacao(dados_planilha):
         time.sleep(1)
         pyautogui.write(str(observacao))
         pyautogui.press('enter')
-        time.sleep(7) """ # Espera o upload completar 
+        time.sleep(7)  # Espera o upload completar 
         print("✅ Navegação concluída!")
         input("\nPressione Enter para continuar...")
         return True
