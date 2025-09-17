@@ -1,4 +1,5 @@
 from modulo_login_nfe import fazer_login_nfe
+from coordenadas import coordenadas
 import time
 
 def processo_nfe():
@@ -37,7 +38,7 @@ def menu_principal():
     if opcao == "1":
         processo_nfe()
     elif opcao == "2":
-        testar_coordenadas_nfe()
+        coordenadas()
     elif opcao == "3":
         driver = fazer_login_nfe()
         if driver:
@@ -50,8 +51,6 @@ def menu_principal():
         print("❌ Opção inválida")
     
     return True
-
-# Execução principal
 if __name__ == "__main__":
     while menu_principal():
         pass
