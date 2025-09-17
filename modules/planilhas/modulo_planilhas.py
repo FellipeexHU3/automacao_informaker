@@ -1,17 +1,16 @@
-import os
 import pandas as pd
 import warnings
-from dotenv import load_dotenv
+import os 
+from core.config import config 
 
 # ⚠️ Remover warnings chatos do openpyxl
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
-load_dotenv()
 
 def _ler_planilha(nome, caminho_env, coluna_env, aba_env, header=0):
     """Função genérica para ler uma planilha e extrair informações."""
-    caminho = os.getenv(caminho_env)
-    coluna_valor = os.getenv(coluna_env)
-    nome_aba = os.getenv(aba_env)
+    caminho = getattr(config, caminho_env, None)
+    coluna_valor = getattr(config, coluna_env, None)
+    nome_aba = getattr(config, aba_env, None)
 
     if not caminho or not os.path.exists(caminho):
         print(f"❌ Arquivo não encontrado: {caminho}")
@@ -290,19 +289,3 @@ def selecionar_tipo_planilha():
     else:
         print("❌ Opção inválida")
         return None
-
-def verificar_variaveis_env():
-    """Verifica se todas variáveis do .env estão configuradas"""
-    print("\n🔍 VERIFICANDO VARIÁVEIS DO .ENV...")
-    print("=" * 50)
-
-    variaveis = [
-        'CAMINHO_PLANILHA_VUE', 'COLUNA_VALOR_VUE', 'NOME_ABA_VUE',
-        'CAMINHO_PLANILHA_KRYTERION', 'COLUNA_VALOR_KRYTERION', 'NOME_ABA_KRYTERION', 
-        'CAMINHO_PLANILHA_PSI', 'COLUNA_VALOR_PSI', 'NOME_ABA_PSI'
-    ]
-
-    for var in variaveis:
-        valor = os.getenv(var)
-        status = "✅" if valor else "❌"
-        print(f"{status} {var}: {valor}")

@@ -4,6 +4,22 @@ from modulo_mouse_planilhas import executar_sequencia_navegacao
 from coordenadas import coordenadas
 import time
 
+
+def obter_caminho_planilha(tipo_planilha):
+     """Retorna o caminho da planilha baseado no tipo"""
+    from dotenv import load_dotenv
+    import os
+    load_dotenv()
+    
+    if tipo_planilha == "VUE":
+        return os.getenv('CAMINHO_PLANILHA_VUE')
+    elif tipo_planilha == "KRYTERION":
+        return os.getenv('CAMINHO_PLANILHA_KRYTERION')
+    elif tipo_planilha == "PSI":
+        return os.getenv('CAMINHO_PLANILHA_PSI')
+    else:
+        return None
+        
 def automacao_completa():
     """Automação completa modularizada"""
     print("🤖 AUTOMAÇÃO COMPLETA - SISTEMA MODULAR")

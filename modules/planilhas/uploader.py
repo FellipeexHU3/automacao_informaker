@@ -2,6 +2,7 @@ import pyautogui
 import time
 from dotenv import load_dotenv  
 import os
+from .excel_handler import obter_caminho_planilha
 
 # Carregar variáveis do .env uma vez no início
 load_dotenv() 
@@ -160,18 +161,3 @@ def selecionar_tipo_planilha(tipo_planilha):
     except Exception as e:
         print(f"❌ Erro ao selecionar tipo: {e}")
         return False
-
-def obter_caminho_planilha(tipo_planilha):
-    """Retorna o caminho da planilha baseado no tipo"""
-    from dotenv import load_dotenv
-    import os
-    load_dotenv()
-    
-    if tipo_planilha == "VUE":
-        return os.getenv('CAMINHO_PLANILHA_VUE')
-    elif tipo_planilha == "KRYTERION":
-        return os.getenv('CAMINHO_PLANILHA_KRYTERION')
-    elif tipo_planilha == "PSI":
-        return os.getenv('CAMINHO_PLANILHA_PSI')
-    else:
-        return None
