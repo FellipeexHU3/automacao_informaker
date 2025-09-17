@@ -1,5 +1,6 @@
 import pyautogui
 import time 
+import sys
 import os
 from core.config import config
 
@@ -87,7 +88,7 @@ def executar_sequencia_navegacao(dados_planilha):
         pyautogui.hotkey('ctrl', 'a')
         time.sleep(0.5)
         print("🖱️ Obtendo caminho da planilha")
-        pyautogui.write(os.path.dirname(obter_caminho_planilha(dados_planilha['tipo'])))
+        pyautogui.write(os.path.dirname(config.obter_caminho_planilha(dados_planilha['tipo'])))
         time.sleep(0.5)
         pyautogui.press('enter')
         pyautogui.press('enter')
@@ -102,7 +103,7 @@ def executar_sequencia_navegacao(dados_planilha):
         time.sleep(0.2)
         pyautogui.press('f6')
         time.sleep(0.2)
-        pyautogui.write(str(os.path.basename(obter_caminho_planilha(dados_planilha['tipo']))))
+        pyautogui.write(str(os.path.basename(config.obter_caminho_planilha(dados_planilha['tipo']))))
         time.sleep(0.5)
         pyautogui.press('enter')    
         time.sleep(3) 

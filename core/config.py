@@ -25,7 +25,7 @@ class Config:
         self.NFE_SENHA=os.getenv('NFE_SENHA')
         self.NFE_INSCRICAO_MUNICIPAL=os.getenv('NFE_INSCRICAO_MUNICIPAL')
         self.NFE_CAMINHO_PLANILHA=os.getenv('NFE_CAMINHO_PLANILHA')
-        
+
     def obter_caminho_planilha(self, tipo_planilha):
         if tipo_planilha == "VUE":
             return self.CAMINHO_PLANILHA_VUE
