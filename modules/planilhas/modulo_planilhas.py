@@ -6,141 +6,6 @@ from core.config import config
 # ⚠️ Remover warnings chatos do openpyxl
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
-def _ler_planilha(nome, caminho_env, coluna_env, aba_env, header=0):
-    """Função genérica para ler uma planilha e extrair informações."""
-    caminho = getattr(config, caminho_env, None)
-    coluna_valor = getattr(config, coluna_env, None)
-    nome_aba = getattr(config, aba_env, None)
-
-    if not caminho or not os.path.exists(caminho):
-        print(f"❌ Arquivo não encontrado: {caminho}")
-        return None
-
-    try:
-          # Mostrar abas disponíveis (FORA DO IF, PARA TODAS AS PLANILHAS)
-        excel_file = pd.ExcelFile(caminho)
-        print(f"\n📊 PROCESSANDO {nome}:")
-        print(f"✅ Abas disponíveis: {excel_file.sheet_names}")
-
-       # ⚠️ CASO ESPECIAL KRYTERION - PROCESSAR TODAS AS ABAS (Mês 1, Mês 2, Mês 3)
-        if nome == "KRYTERION":
-            abas_alvo = ["Mês 1", "Mês 2", "Mês 3"]
-            total_geral = 0
-            valor_total_geral = 0.0
-            abas_processadas = []
-            
-            for aba in abas_alvo:
-                if aba in excel_file.sheet_names:
-                    print(f"\n📋 PROCESSANDO ABA: {aba}")
-                    
-                    # Ler cada aba com header=1
-                    df_aba = pd.read_excel(caminho, sheet_name=aba, header=1)
-                    print(f"✅ Estrutura da {aba}: {list(df_aba.columns)}")
-                    
-                    if coluna_valor and coluna_valor in df_aba.columns:
-                        valores_validos = df_aba[coluna_valor].notna().sum()
-                        valor_aba = df_aba[coluna_valor].sum()
-                        
-                        total_geral += valores_validos
-                        valor_total_geral += valor_aba
-                        abas_processadas.append(aba)
-                        
-                        print(f"✅ Coluna '{coluna_valor}' encontrada!")
-                        print(f"💰 Valores não nulos em {aba}: {valores_validos}")
-                        print(f"💵 Valor total em {aba}: {valor_aba:.2f}")
-                    else:
-                        print(f"❌ Coluna '{coluna_valor}' NÃO encontrada na aba {aba}!")
-                        continue
-                else:
-                    print(f"⚠️ Aba '{aba}' não encontrada")
-            
-            if not abas_processadas:
-                print("❌ Nenhuma aba válida processada")
-                return None
-            
-            print(f"\n🎯 TOTAL GERAL KRYTERION:")
-            print(f"   📊 Total de registros: {total_geral}")
-            print(f"   💰 Valor total: {valor_total_geral:.2f}")
-            print(f"   📋 Abas processadas: {', '.join(abas_processadas)}")
-            
-            # Dados de retorno para Kryterion
-            valores_por_aba = {}
-
-            for aba in abas_alvo:
-                if aba in excel_file.sheet_names:
-                    df_aba = pd.read_excel(caminho, sheet_name=aba, header=1)
-                    if coluna_valor and coluna_valor in df_aba.columns:
-                        valores_validos = df_aba[coluna_valor].notna().sum()
-                        valor_aba = df_aba[coluna_valor].sum()
-                        valores_por_aba[aba] = {
-                            "quantidade": int(valores_validos),
-                            "valor_total": float(valor_aba)
-                        }
-
-            retorno = {
-                "tipo": nome,
-                "quantidade": int(total_geral),
-                "valor_total": float(valor_total_geral),
-                "abas_processadas": abas_processadas,
-                "valores_por_aba": valores_por_aba,
-                "moeda": "US$"
-            }
-
-        else:
-            # ⚠️ PARA OUTRAS PLANILHAS (VUE, PSI) - COMPORTAMENTO NORMAL
-            df = pd.read_excel(caminho, sheet_name=nome_aba if nome_aba else 0, header=header)
-            print(f"✅ Estrutura: {list(df.columns)}")
-
-            # Verificar coluna de valor
-            valor_total = 0.0
-            if coluna_valor and coluna_valor in df.columns:
-                valores_validos = df[coluna_valor].notna().sum()
-                valor_total = df[coluna_valor].sum()
-                print(f"✅ Coluna '{coluna_valor}' encontrada!")
-                print(f"💰 Valores não nulos: {valores_validos}")
-                print(f"💵 Valor total: {valor_total:.2f}")
-            else:
-                print(f"❌ Coluna '{coluna_valor}' NÃO encontrada!")
-                return None
-
-            # Dados base de retorno para outras planilhas
-            retorno = {
-                "tipo": nome,
-                "quantidade": int(len(df)),
-                "valor_total": float(valor_total),
-                "moeda": "US$"
-            }
-
-            # 🔎 CASO ESPECIAL PSI - Contar SELT vs Outros
-        if nome.upper() == "PSI":
-            # Verificar se tem coluna 'Cliente' para identificar SELT
-            if 'Cliente ' in df.columns:
-                clientes_validos = df["Cliente "].dropna().astype(str)
-                qtd_selt = clientes_validos.str.contains("selt", case=False, na=False).sum()
-                qtd_outros = len(clientes_validos) - qtd_selt
-
-                total_geral = qtd_selt + qtd_outros
-
-                print(f"👥 CLIENTES PSI:")
-                print(f"   ✅ SELT: {qtd_selt}")
-                print(f"   ✅ Outros: {qtd_outros}")
-                print(f"   ✅ TOTAL GERAL: {total_geral}")
-
-                # Atualizar quantidade para o total real de candidatos
-                retorno["quantidade"] = int(total_geral)
-                retorno["qtd_selt"] = int(qtd_selt)
-                retorno["qtd_outros"] = int(qtd_outros)
-                print(_gerar_relatorio_psi(retorno))
-                
-            else:
-                print("⚠️ Coluna 'Cliente' não encontrada para análise PSI")
-
-        return retorno  # ✅ Retorna apenas dados brutos, sem relatório
-
-    except Exception as e:
-        print(f"❌ Erro ao processar {nome}: {e}")
-        return None
-
 def ler_planilha_vue():
     return _ler_planilha("VUE", "CAMINHO_PLANILHA_VUE", "COLUNA_VALOR_VUE", "NOME_ABA_VUE")
 
@@ -270,6 +135,142 @@ def _formatar_comentario_psi(dados_psi):
     return f"""ID 23157
 PSI SITE #12693 - {dados_psi.get('qtd_outros', 0):02d} Candidates
 PSI SITE #12807 (SELT) - {dados_psi.get('qtd_selt', 0):02d} Candidates"""
+
+
+def _ler_planilha(nome, caminho_env, coluna_env, aba_env, header=0):
+    """Função genérica para ler uma planilha e extrair informações."""
+    caminho = getattr(config, caminho_env, None)
+    coluna_valor = getattr(config, coluna_env, None)
+    nome_aba = getattr(config, aba_env, None)
+
+    if not caminho or not os.path.exists(caminho):
+        print(f"❌ Arquivo não encontrado: {caminho}")
+        return None
+
+    try:
+          # Mostrar abas disponíveis (FORA DO IF, PARA TODAS AS PLANILHAS)
+        excel_file = pd.ExcelFile(caminho)
+        print(f"\n📊 PROCESSANDO {nome}:")
+        print(f"✅ Abas disponíveis: {excel_file.sheet_names}")
+
+       # ⚠️ CASO ESPECIAL KRYTERION - PROCESSAR TODAS AS ABAS (Mês 1, Mês 2, Mês 3)
+        if nome == "KRYTERION":
+            abas_alvo = ["Mês 1", "Mês 2", "Mês 3"]
+            total_geral = 0
+            valor_total_geral = 0.0
+            abas_processadas = []
+            
+            for aba in abas_alvo:
+                if aba in excel_file.sheet_names:
+                    print(f"\n📋 PROCESSANDO ABA: {aba}")
+                    
+                    # Ler cada aba com header=1
+                    df_aba = pd.read_excel(caminho, sheet_name=aba, header=1)
+                    print(f"✅ Estrutura da {aba}: {list(df_aba.columns)}")
+                    
+                    if coluna_valor and coluna_valor in df_aba.columns:
+                        valores_validos = df_aba[coluna_valor].notna().sum()
+                        valor_aba = df_aba[coluna_valor].sum()
+                        
+                        total_geral += valores_validos
+                        valor_total_geral += valor_aba
+                        abas_processadas.append(aba)
+                        
+                        print(f"✅ Coluna '{coluna_valor}' encontrada!")
+                        print(f"💰 Valores não nulos em {aba}: {valores_validos}")
+                        print(f"💵 Valor total em {aba}: {valor_aba:.2f}")
+                    else:
+                        print(f"❌ Coluna '{coluna_valor}' NÃO encontrada na aba {aba}!")
+                        continue
+                else:
+                    print(f"⚠️ Aba '{aba}' não encontrada")
+            
+            if not abas_processadas:
+                print("❌ Nenhuma aba válida processada")
+                return None
+            
+            print(f"\n🎯 TOTAL GERAL KRYTERION:")
+            print(f"   📊 Total de registros: {total_geral}")
+            print(f"   💰 Valor total: {valor_total_geral:.2f}")
+            print(f"   📋 Abas processadas: {', '.join(abas_processadas)}")
+            
+            # Dados de retorno para Kryterion
+            valores_por_aba = {}
+
+            for aba in abas_alvo:
+                if aba in excel_file.sheet_names:
+                    df_aba = pd.read_excel(caminho, sheet_name=aba, header=1)
+                    if coluna_valor and coluna_valor in df_aba.columns:
+                        valores_validos = df_aba[coluna_valor].notna().sum()
+                        valor_aba = df_aba[coluna_valor].sum()
+                        valores_por_aba[aba] = {
+                            "quantidade": int(valores_validos),
+                            "valor_total": float(valor_aba)
+                        }
+
+            retorno = {
+                "tipo": nome,
+                "quantidade": int(total_geral),
+                "valor_total": float(valor_total_geral),
+                "abas_processadas": abas_processadas,
+                "valores_por_aba": valores_por_aba,
+                "moeda": "US$"
+            }
+
+        else:
+            # ⚠️ PARA OUTRAS PLANILHAS (VUE, PSI) - COMPORTAMENTO NORMAL
+            df = pd.read_excel(caminho, sheet_name=nome_aba if nome_aba else 0, header=header)
+            print(f"✅ Estrutura: {list(df.columns)}")
+
+            # Verificar coluna de valor
+            valor_total = 0.0
+            if coluna_valor and coluna_valor in df.columns:
+                valores_validos = df[coluna_valor].notna().sum()
+                valor_total = df[coluna_valor].sum()
+                print(f"✅ Coluna '{coluna_valor}' encontrada!")
+                print(f"💰 Valores não nulos: {valores_validos}")
+                print(f"💵 Valor total: {valor_total:.2f}")
+            else:
+                print(f"❌ Coluna '{coluna_valor}' NÃO encontrada!")
+                return None
+
+            # Dados base de retorno para outras planilhas
+            retorno = {
+                "tipo": nome,
+                "quantidade": int(len(df)),
+                "valor_total": float(valor_total),
+                "moeda": "US$"
+            }
+
+            # 🔎 CASO ESPECIAL PSI - Contar SELT vs Outros
+        if nome.upper() == "PSI":
+            # Verificar se tem coluna 'Cliente' para identificar SELT
+            if 'Cliente ' in df.columns:
+                clientes_validos = df["Cliente "].dropna().astype(str)
+                qtd_selt = clientes_validos.str.contains("selt", case=False, na=False).sum()
+                qtd_outros = len(clientes_validos) - qtd_selt
+
+                total_geral = qtd_selt + qtd_outros
+
+                print(f"👥 CLIENTES PSI:")
+                print(f"   ✅ SELT: {qtd_selt}")
+                print(f"   ✅ Outros: {qtd_outros}")
+                print(f"   ✅ TOTAL GERAL: {total_geral}")
+
+                # Atualizar quantidade para o total real de candidatos
+                retorno["quantidade"] = int(total_geral)
+                retorno["qtd_selt"] = int(qtd_selt)
+                retorno["qtd_outros"] = int(qtd_outros)
+                print(_gerar_relatorio_psi(retorno))             
+            else:
+                print("⚠️ Coluna 'Cliente' não encontrada para análise PSI")
+
+        return retorno  # ✅ Retorna apenas dados brutos, sem relatório
+
+    except Exception as e:
+        print(f"❌ Erro ao processar {nome}: {e}")
+        return None
+
 
 def selecionar_tipo_planilha():
     """Apenas seleciona o tipo da planilha (para testes)"""

@@ -1,11 +1,8 @@
 import pyautogui
-import time
-from dotenv import load_dotenv  
+import time 
 import os
-from .excel_handler import obter_caminho_planilha
+from core.config import config
 
-# Carregar variáveis do .env uma vez no início
-load_dotenv() 
 def executar_sequencia_navegacao(dados_planilha):
     """Executa sequência de navegação até o formulário"""
     print("🖱️ EXECUTANDO SEQUÊNCIA DE NAVEGAÇÃO...")
@@ -29,8 +26,8 @@ def executar_sequencia_navegacao(dados_planilha):
         print(f"⌨️ Digitando nome da planilha: {dados_planilha['tipo']}")
         if dados_planilha['tipo'] == "VUE":
             pyautogui.write("VUE")# Nome correto para VUE
-        elif dados_planilha['tipo'] == "Kryterion":
-            pyautogui.write("Kryterion")  # Nome correto para Kryterion
+        elif dados_planilha['tipo'] == "KRYTERION":
+            pyautogui.write("KRYTERION")  # Nome correto para KRYTERION
         elif dados_planilha['tipo'] == "PSI":
             pyautogui.write("PSI")       # Nome correto para PSI
         else:
