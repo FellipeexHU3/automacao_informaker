@@ -13,7 +13,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 COORDENADAS = {
     'inscricao_municipal': (215, 315),
     'menu_emitir_nfe': (50, 290),
-    'minimizar_menu': (15, 166),
     'data_competencia': (1222, 375),
     'mostrar_rps': (280, 470),
     'numero_rps': (222, 520),#txtNumeroRps

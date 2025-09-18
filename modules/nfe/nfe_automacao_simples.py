@@ -1,70 +1,63 @@
-# modulo_nfe/nfe_automacao_simples.py
 import pyautogui
 import time
+import sys
+import os
 from datetime import datetime
+from modules.nfe.nfe_planilha_teste import testar_planilha
+from modules.nfe.nfe_core import NFE
+from modules.nfe.nfe_config import CONFIG_NFE
+from modules.login.modulo_login_nfe import fazer_login_nfe
 
-# ================= CONFIGURAÇÕES DIRETO NO CÓDIGO =================
-# COORDENADAS FICTÍCIAS - AJUSTE COM AS SUAS!
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+# ================= CONFIGURAÇÕES =================
 COORDENADAS = {
-    'campo_usuario': (230, 280),
-    'campo_senha': (230, 320),
-    'botao_login': (230, 360),
-    'menu_nfse': (100, 100),
-    'emitir_nfse': (150, 150),
-    'campo_data': (300, 250),
-    'campo_cpf': (300, 280),
-    'campo_nome': (300, 310),
-    'campo_valor': (300, 340),
-    'campo_email': (300, 370),
+    'inscricao_municipal': (215, 315),
+    'menu_emitir_nfe': (50, 290),
+    'data_competencia': (1222, 375),
+    'mostrar_rps': (280, 470),
+    'numero_rps': (222, 520),
+    'data_emissao': (560, 520), 
+    'modelo_rps': (1000, 520),
+    'modelo_rps2': (1000, 545),
+    'campo_cpf': (333, 615),
+    'campo_nome': (333, 640),
+    'campo_valor': (333, 665),
+    'campo_email': (740, 700),
+    'campo_descricao': (300, 350),
+    'campo_lc': (500, 400), 
+    'campo_lc2': (500, 425),
+    'campo_atv_municipio': (900, 400),
+    'campo_atv_municipio2': (900, 425),
     'botao_emitir': (500, 500),
-    'botao_confirmar': (550, 550)
+    'botao_confirmar': (680, 415),
+    'numero_nfe': (1010, 383),
+    'cod_autenticidade': (888, 500),
+    'incluir_nova': (690, 690),
+    'fora_quadrante': (1155, 411)
 }
 
-TEMPOS = {
-    'login': 2,
-    'navegacao': 1,
-    'preenchimento': 0.5,
-    'processamento': 3
-}
-
-# ================= FUNÇÕES PURAS - SEM CLASSES =================
-
-def fazer_login_nfe_pyautogui(usuario, senha):
-    """Faz login no sistema NFE usando PyAutoGUI"""
-    print("🔐 FAZENDO LOGIN...")
-    
+# ================= FUNÇÕES ESPECÍFICAS CAMPO A CAMPO =================
+def navegar_para_formulario():
+    """Navega até o formulário de emissão - PASSO A PASSO"""
+    print("🗺️ NAVEGANDO PARA FORMULÁRIO...")
     try:
-        # Campo usuário
-        pyautogui.click(COORDENADAS['campo_usuario'])
-        time.sleep(TEMPOS['preenchimento'])
-        pyautogui.write(usuario)
+        # 1. Clica na inscrição municipal
+        pyautogui.click(COORDENADAS['inscricao_municipal'])
+        time.sleep(1)
         
-        # Campo senha
-        pyautogui.click(COORDENADAS['campo_senha'])
-        time.sleep(TEMPOS['preenchimento'])
-        pyautogui.write(senha)
+        # 2. Preenche inscrição municipal (pega da config)
+        inscricao = str(CONFIG_NFE.get('inscricao_municipal', ''))
+        pyautogui.write(inscricao)
+        time.sleep(0.5)
         
-        # Botão login
-        pyautogui.click(COORDENADAS['botao_login'])
-        time.sleep(TEMPOS['login'])
+        # 3. Enter para confirmar
+        pyautogui.press('enter')
+        time.sleep(10)
         
-        print("✅ Login realizado!")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Erro no login: {e}")
-        return False
-
-def navegar_para_emissao():
-    """Navega até a tela de emissão de NFSe"""
-    print("🗺️ NAVEGANDO PARA EMISSÃO...")
-    
-    try:
-        pyautogui.click(COORDENADAS['menu_nfse'])
-        time.sleep(TEMPOS['navegacao'])
-        
-        pyautogui.click(COORDENADAS['emitir_nfse'])
-        time.sleep(TEMPOS['navegacao'])
+        # 4. Clica no menu emitir NFE
+        pyautogui.click(COORDENADAS['menu_emitir_nfe'])
+        time.sleep(7)
         
         print("✅ Navegação concluída!")
         return True
@@ -73,106 +66,183 @@ def navegar_para_emissao():
         print(f"❌ Erro na navegação: {e}")
         return False
 
-def preencher_dados_nota(dados_nota):
-    """Preenche os dados da nota fiscal"""
-    print("📝 PREENCHENDO DADOS...")
-    
+def preencher_campos_nota(dados_nota):
+    """Preenche CADA CAMPO individualmente com os dados da nota"""
+    print("📝 PREENCHENDO CAMPOS DA NOTA...")
     try:
-        # Data (campo 103)
-        if '103' in dados_nota:
-            pyautogui.click(COORDENADAS['campo_data'])
-            time.sleep(TEMPOS['preenchimento'])
-            pyautogui.write(str(dados_nota['103']))
+        # 👇 AGORA VOCÊ CONTROLA CADA CAMPO INDIVIDUALMENTE!
         
-        # CPF
-        if 'CPF' in dados_nota:
-            pyautogui.click(COORDENADAS['campo_cpf'])
-            time.sleep(TEMPOS['preenchimento'])
-            pyautogui.write(str(dados_nota['CPF']))
+        # 1. Data de competência (campo 103 da planilha)
+        pyautogui.click(COORDENADAS['data_competencia'])
+        time.sleep(0.5)
+        data_competencia = str(dados_nota.get('Campo103', ''))  # 👈 SEU CAMPO 103
+        pyautogui.write(data_competencia)
+        time.sleep(0.5)
+        pyautogui.press('tab')
+        time.sleep(0.3)
         
-        # Nome
-        if 'Nome' in dados_nota:
-            pyautogui.click(COORDENADAS['campo_nome'])
-            time.sleep(TEMPOS['preenchimento'])
-            pyautogui.write(str(dados_nota['Nome']))
+        # 2. Mostrar RPS
+        pyautogui.click(COORDENADAS['mostrar_rps'])
+        time.sleep(1)
         
-        # Valor
-        if 'Valor' in dados_nota:
-            pyautogui.click(COORDENADAS['campo_valor'])
-            time.sleep(TEMPOS['preenchimento'])
-            pyautogui.write(str(dados_nota['Valor']))
+        # 3. Número RPS (se tiver na planilha)
+        pyautogui.click(COORDENADAS['numero_rps'])
+        time.sleep(0.5)
+        numero_rps = str(dados_nota.get('NumeroRPS', ''))
+        pyautogui.write(numero_rps)
+        time.sleep(0.5)
+        pyautogui.press('tab')
+        time.sleep(0.3)
         
-        # Email
-        if 'E-mail' in dados_nota:
-            pyautogui.click(COORDENADAS['campo_email'])
-            time.sleep(TEMPOS['preenchimento'])
-            pyautogui.write(str(dados_nota['E-mail']))
+        # 4. Data emissão (campo específico da planilha)
+        pyautogui.click(COORDENADAS['data_emissao'])
+        time.sleep(0.5)
+        data_emissao = str(dados_nota.get('DataEmissao', ''))
+        pyautogui.write(data_emissao)
+        time.sleep(0.5)
+        pyautogui.press('tab')
+        time.sleep(0.3)
         
-        print("✅ Dados preenchidos!")
+        # 5. CPF do cliente
+        pyautogui.click(COORDENADAS['campo_cpf'])
+        time.sleep(0.5)
+        cpf = str(dados_nota.get('CPF', ''))
+        pyautogui.write(cpf)
+        time.sleep(0.5)
+        pyautogui.press('tab')
+        time.sleep(0.3)
+        
+        # 6. Nome do cliente
+        pyautogui.click(COORDENADAS['campo_nome'])
+        time.sleep(0.5)
+        nome = str(dados_nota.get('Nome', ''))
+        pyautogui.write(nome)
+        time.sleep(0.5)
+        pyautogui.press('tab')
+        time.sleep(0.3)
+        
+        # 7. Valor da nota
+        pyautogui.click(COORDENADAS['campo_valor'])
+        time.sleep(0.5)
+        valor = str(dados_nota.get('Valor', ''))
+        pyautogui.write(valor)
+        time.sleep(0.5)
+        pyautogui.press('tab')
+        time.sleep(0.3)
+        
+        # 8. Email (se necessário)
+        pyautogui.click(COORDENADAS['campo_email'])
+        time.sleep(0.5)
+        email = str(dados_nota.get('Email', ''))
+        pyautogui.write(email)
+        time.sleep(0.5)
+        pyautogui.press('tab')
+        time.sleep(0.3)
+        
+        # 9. Descrição do serviço
+        pyautogui.click(COORDENADAS['campo_descricao'])
+        time.sleep(0.5)
+        descricao = str(dados_nota.get('Descricao', ''))
+        pyautogui.write(descricao)
+        time.sleep(0.5)
+        pyautogui.press('tab')
+        time.sleep(0.3)
+        
+        print("✅ Todos os campos preenchidos!")
         return True
         
     except Exception as e:
-        print(f"❌ Erro ao preencher: {e}")
+        print(f"❌ Erro ao preencher campos: {e}")
         return False
 
-def emitir_nota():
-    """Emite a nota fiscal e retorna os dados"""
-    print("🚀 EMITINDO NOTA...")
-    
+def selecionar_opcoes_fixas():
+    """Seleciona opções que são fixas (não variam por nota)"""
+    print("🎯 SELECIONANDO OPÇÕES FIXAS...")
     try:
-        pyautogui.click(COORDENADAS['botao_emitir'])
-        time.sleep(TEMPOS['processamento'])
+        # 1. Modelo RPS (opção fixa)
+        pyautogui.click(COORDENADAS['modelo_rps'])
+        time.sleep(1)
+        pyautogui.press('down')  # Seleciona opção
+        time.sleep(0.5)
+        pyautogui.press('enter')
+        time.sleep(1)
         
-        pyautogui.click(COORDENADAS['botao_confirmar'])
-        time.sleep(TEMPOS['processamento'])
+        # 2. Atividade municipal (opção fixa)
+        pyautogui.click(COORDENADAS['campo_atv_municipio'])
+        time.sleep(1)
+        pyautogui.press('down')  # Seleciona opção
+        time.sleep(0.5)
+        pyautogui.press('enter')
+        time.sleep(1)
         
-        # Simula geração da NFSe (você vai adaptar para capturar do sistema)
-        nfse = f"NFSE{datetime.now().strftime('%Y%m%d%H%M')}"
-        autenticidade = f"AUT{datetime.now().strftime('%H%M%S')}"
-        
-        print(f"✅ Nota emitida! {nfse}")
-        return nfse, autenticidade
+        print("✅ Opções fixas selecionadas!")
+        return True
         
     except Exception as e:
-        print(f"❌ Erro ao emitir: {e}")
-        return None, None
+        print(f"❌ Erro nas opções fixas: {e}")
+        return False
 
-def processar_nota_simples(dados_nota, usuario, senha):
-    """Processa uma nota completa - FUNÇÃO PRINCIPAL"""
-    print(f"🔄 PROCESSANDO NOTA - {dados_nota.get('Nome', 'Cliente')}")
+# ================= FLUXO PRINCIPAL =================
+def processar_uma_nota(nota_info, nfe):
+    """Processa UMA nota individual - CONTROLE TOTAL"""
+    print(f"\n📝 PROCESSANDO NOTA {nota_info['indice_array'] + 1}")
+    
+    # 1. Navegar até formulário
+    if not navegar_para_formulario():
+        return False
+    time.sleep(3)
+    
+    # 2. Preencher campos da NOTA (dados variáveis)
+    if not preencher_campos_nota(nota_info['dados']):
+        return False
+    time.sleep(2)
+    
+    # 3. Selecionar opções FIXAS
+    if not selecionar_opcoes_fixas():
+        return False
+    time.sleep(2)
+    
+    # 4. Gerar nota
+    nfse, autenticidade = gerar_nota()
+    if not nfse:
+        return False
+    
+    # 5. Atualizar planilha
+    nfe.marcar_como_processada(nota_info['indice_array'], nfse, autenticidade)
+    print(f"✅ NFSe: {nfse} | Autenticidade: {autenticidade}")
+    
+    # 6. Preparar para próxima nota
+    pyautogui.click(COORDENADAS['incluir_nova'])
+    time.sleep(3)
+    
+    return True
+
+def main():
+    """FLUXO COMPLETO DA AUTOMAÇÃO NFE"""
+    print("🚀 INICIANDO AUTOMAÇÃO NFE")
     print("=" * 50)
     
-    # Login
-    if not fazer_login_nfe_pyautogui(usuario, senha):
-        return False, None, None
+    # 1. Carregar planilha
+    nfe = carregar_planilha()
+    if not nfe:
+        return
     
-    # Navegação
-    if not navegar_para_emissao():
-        return False, None, None
+    # 2. Fazer login
+    driver = fazer_login_nfe()
+    if not driver:
+        return
     
-    # Preenchimento
-    if not preencher_dados_nota(dados_nota):
-        return False, None, None
+    print("✅ Login realizado! Iniciando automação em 5 segundos...")
+    time.sleep(5)
     
-    # Emissão
-    nfse, autenticidade = emitir_nota()
+    # 3. Processar notas
+    processar_notas_pendentes(nfe)
     
-    if nfse and autenticidade:
-        print("🎉 NOTA PROCESSADA COM SUCESSO!")
-        return True, nfse, autenticidade
-    
-    return False, None, None
+    # 4. Salvar e finalizar
+    salvar_planilha(nfe)
+    driver.quit()
 
-# ================= FUNÇÃO DE TESTE =================
-
-def testar_coordenadas():
-    """Testa todas as coordenadas configuradas"""
-    print("🎯 TESTANDO COORDENADAS")
-    print("=" * 50)
-    
-    for nome, coord in COORDENADAS.items():
-        print(f"Testando {nome}: {coord}")
-        pyautogui.moveTo(coord)
-        time.sleep(0.5)
-    
-    print("✅ Teste de coordenadas concluído!")
+# ================= EXECUÇÃO =================
+if __name__ == "__main__":
+    main()
+    print("\n🎉 AUTOMAÇÃO CONCLUÍDA!")
