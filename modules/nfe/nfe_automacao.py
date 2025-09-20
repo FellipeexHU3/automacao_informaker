@@ -61,7 +61,7 @@ def preencher_dados(dados):
         print(f"❌ Erro ao preencher dados: {e}")
         return False
 
-def navegar_para_formulario_selenium(driver):
+def navegar_para_formulario(dados):
     """Navega e preenche a inscrição municipal no campo txtCae"""
     print("🗺️ NAVEGANDO E PREENCHENDO INSCRIÇÃO MUNICIPAL...")
     try:
@@ -97,17 +97,6 @@ def navegar_para_formulario_selenium(driver):
         
     except Exception as e:
         print(f"❌ Erro ao preencher inscrição municipal: {e}")
-        return False
-def navegar_para_formulario():
-    """Navega até o formulário de emissão"""
-    print("🗺️ NAVEGANDO PARA FORMULÁRIO...")
-    try:
-        pyautogui.click(COORDENADAS['inscricao_municipal'])
-        time.sleep(1)
-        py
-        return True
-    except Exception as e:
-        print(f"❌ Erro ao navegar: {e}")
         return False
 
 def gerar_nota():
@@ -196,11 +185,12 @@ def main():
         return
     
     # 3. 👇 AGORA USA A NOVA FUNÇÃO COM SELENIUM
-    navegar_para_formulario_selenium(driver)
-    if not navegar_para_formulario_selenium(driver):
-        print("❌ Falha na navegação - abortando")
-        driver.quit()
-        return
+    if nfe.notas_pendentes:
+        dados_primeira_nota = nfe.notas_pendentes[0]['dados']
+        if not navegar_para_formulario(dados_primeira_nota):
+            print("❌ Falha na navegação")
+            driver.quit()
+            return
     
     # 4. 👇 DEPOIS USA PYAUTOGUI PARA PREENCHER (se quiser)
     processar_notas_pendentes(nfe)  # Esta ainda usa PyAutoGUI
@@ -235,7 +225,7 @@ def processar_uma_nota(nota_info, nfe):
     print(f"\n📝 PROCESSANDO NOTA {nota_info['indice_array'] + 1}")
     
     # A. NAVEGAR ATÉ FORMULÁRIO
-    if not navegar_para_formulario():
+    if not navegar_para_formulario(nota_info['dados']):
         return False
     
     # B. PREENCHER DADOS

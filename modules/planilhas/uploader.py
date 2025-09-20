@@ -30,7 +30,9 @@ def executar_sequencia_navegacao(dados_planilha):
         elif dados_planilha['tipo'] == "KRYTERION":
             pyautogui.write("KRYTERION")  # Nome correto para KRYTERION
         elif dados_planilha['tipo'] == "PSI":
-            pyautogui.write("PSI")       # Nome correto para PSI
+            pyautogui.write("PSI")
+        elif dados_planilha['tipo'] == "SCANTRON":
+            pyautogui.write("SCANTRON")
         else:
             pyautogui.write(dados_planilha['tipo']) # Usa o próprio tipo como fallback
         time.sleep(0.5)
@@ -141,7 +143,9 @@ def selecionar_tipo_planilha(tipo_planilha):
         elif tipo_planilha == "Kryterion":
             pyautogui.write("kryterion")    # Código para Kryterion
         elif tipo_planilha == "PSI":
-            pyautogui.write("psi")    # Código para PSI
+            pyautogui.write("psi")
+        elif tipo_planilha == "SCANTRON":
+            pyautogui.write("scantron")
 
         time.sleep(0.5)
         pyautogui.click(410, 345) # confirmar botão GO

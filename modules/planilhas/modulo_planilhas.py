@@ -15,12 +15,16 @@ def ler_planilha_kryterion():
 def ler_planilha_psi():
     return _ler_planilha("PSI", "CAMINHO_PLANILHA_PSI", "COLUNA_VALOR_PSI", "NOME_ABA_PSI")
 
+def ler_planilha_scantron():   
+    return _ler_planilha("SCANTRON", "CAMINHO_PLANILHA_SCANTRON", "COLUNA_VALOR_SCANTRON", "NOME_ABA_SCANTRON")
+
 def selecionar_planilha():
     """Menu para escolher a planilha a ser usada na automação"""
     print("\n📋 SELECIONE A PLANILHA:")
     print("1 - VUE")
     print("2 - KRYTERION")
     print("3 - PSI")
+    print("4 - SCANTRON")
     
     opcao = input("Digite o número da opção: ")
 
@@ -30,6 +34,8 @@ def selecionar_planilha():
         dados = ler_planilha_kryterion()
     elif opcao == "3":
         dados = ler_planilha_psi()
+    elif opcao == "4":
+        dados = ler_planilha_scantron()
     else:
         print("❌ Opção inválida")
         return None
@@ -41,15 +47,17 @@ def selecionar_planilha():
         dados = _processar_dados_kryterion(dados)
     elif dados and dados.get('tipo') == 'PSI':
         dados = _processar_dados_psi(dados)
+    elif dados and dados.get('tipo') == 'SCANTRON':
+        dados = _processar_dados_scantron(dados)
     return dados
 
-def _processar_dados_psi(dados_psi):
-    """Processa os dados da PSI para formato final"""
-    if dados_psi and 'qtd_selt' in dados_psi:
-        dados_psi['comentario'] = _formatar_comentario_psi(dados_psi)
-        print("\n🎯 COMENTÁRIO PSI GERADO:")
-    return dados_psi
 
+def _processar_dados_vue(dados_vue):
+    """Processa os dados da VUE para formato final"""
+    if dados_vue and 'quantidade' in dados_vue:
+        dados_vue['comentario'] = _formatar_comentario_vue(dados_vue)
+        print("\n🎯 COMENTÁRIO VUE GERADO:")
+    return dados_vue
 
 def _processar_dados_kryterion(dados_kryterion):
     """Processa os dados da Kryterion para formato final"""
@@ -59,13 +67,20 @@ def _processar_dados_kryterion(dados_kryterion):
         print("\n🎯 COMENTÁRIO KRYTERION GERADO:")
     return dados_kryterion
 
+def _processar_dados_psi(dados_psi):
+    """Processa os dados da PSI para formato final"""
+    if dados_psi and 'qtd_selt' in dados_psi:
+        dados_psi['comentario'] = _formatar_comentario_psi(dados_psi)
+        print("\n🎯 COMENTÁRIO PSI GERADO:")
+    return dados_psi
 
-def _processar_dados_vue(dados_vue):
-    """Processa os dados da VUE para formato final"""
-    if dados_vue and 'quantidade' in dados_vue:
-        dados_vue['comentario'] = _formatar_comentario_vue(dados_vue)
-        print("\n🎯 COMENTÁRIO VUE GERADO:")
-    return dados_vue
+
+def _processar_dados_scantron(dados_scantron): 
+    """Processa os dados da Scantron para formato final"""
+    if dados_scantron and 'quantidade' in dados_scantron:
+        dados_scantron['comentario'] = _formatar_comentario_scantron(dados_scantron)
+        print("\n🎯 COMENTÁRIO SCANTRON GERADO:")
+    return dados_scantron
 
 def _gerar_relatorio_psi(dados_psi):
     """Gera relatório formatado para PSI"""
@@ -123,6 +138,7 @@ PEARSON VUE
 Site ID: #88405
 Candidates - {dados_vue.get('quantidade', 0):02d}"""
 
+
 def _formatar_comentario_kryterion(dados_kryterion):
     """Formata o comentário para a textbox da Kryterion"""
     return f"""ID: 23167
@@ -135,6 +151,14 @@ def _formatar_comentario_psi(dados_psi):
     return f"""ID 23157
 PSI SITE #12693 - {dados_psi.get('qtd_outros', 0):02d} Candidates
 PSI SITE #12807 (SELT) - {dados_psi.get('qtd_selt', 0):02d} Candidates"""
+
+
+def _formatar_comentario_scantron(dados_scantron):
+    """Formata o comentário para a textbox da Scantron"""
+    return f""" ID: 23168
+MEAZURE Learning
+Center ID: #10932
+Candidates -7 {dados_scantron.get('quantidade', 0):02d}"""
 
 
 def _ler_planilha(nome, caminho_env, coluna_env, aba_env, header=0):
@@ -217,6 +241,29 @@ def _ler_planilha(nome, caminho_env, coluna_env, aba_env, header=0):
                 "moeda": "US$"
             }
 
+        if nome == "SCANTRON":
+            df = pd.read_excel(caminho, sheet_name=nome_aba if nome_aba else 0, header=1)
+            print(f"✅ Estrutura: {list(df.columns)}")
+
+            # Verificar coluna de valor
+            valor_total = 0.0
+            if coluna_valor and coluna_valor in df.columns:
+                valores_validos = df[coluna_valor].notna().sum()
+                valor_total = df[coluna_valor].sum()
+                print(f"✅ Coluna '{coluna_valor}' encontrada!")
+                print(f"💰 Quantidade de Candidatos: {valores_validos}")
+                print(f"💵 Valor total: {valor_total:.2f}")
+            else:
+                print(f"❌ Coluna '{coluna_valor}' NÃO encontrada!")
+                return None
+
+            # Dados base de retorno para outras planilhas
+            retorno = {
+                "tipo": nome,
+                "quantidade": int(len(df)),
+                "valor_total": float(valor_total),
+                "moeda": "US$"
+            }
         else:
             # ⚠️ PARA OUTRAS PLANILHAS (VUE, PSI) - COMPORTAMENTO NORMAL
             df = pd.read_excel(caminho, sheet_name=nome_aba if nome_aba else 0, header=header)
@@ -243,7 +290,7 @@ def _ler_planilha(nome, caminho_env, coluna_env, aba_env, header=0):
             }
 
             # 🔎 CASO ESPECIAL PSI - Contar SELT vs Outros
-        if nome.upper() == "PSI":
+        if nome == "PSI":
             # Verificar se tem coluna 'Cliente' para identificar SELT
             if 'Cliente ' in df.columns:
                 clientes_validos = df["Cliente "].dropna().astype(str)
@@ -276,17 +323,20 @@ def selecionar_tipo_planilha():
     """Apenas seleciona o tipo da planilha (para testes)"""
     print("\n📋 SELECIONE O TIPO DA PLANILHA:")
     print("1 - VUE")
-    print("2 - Kryterion") 
+    print("2 - KRYTERION") 
     print("3 - PSI")
-    
+    print("4 - SCANTRON")
+
     opcao = input("Digite o número: ")
     
     if opcao == "1":
         return 'VUE'
     elif opcao == "2":
-        return 'Kryterion'
+        return 'KRYTERION'
     elif opcao == "3":
         return 'PSI'
+    elif opcao == "4":
+        return 'SCANTRON'
     else:
         print("❌ Opção inválida")
         return None

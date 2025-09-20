@@ -20,6 +20,10 @@ class Config:
         self.COLUNA_VALOR_KRYTERION = os.getenv('COLUNA_VALOR_KRYTERION')
         self.NOME_ABA_KRYTERION = os.getenv('NOME_ABA_KRYTERION')
 
+        self.CAMINHO_PLANILHA_SCANTRON = os.getenv('CAMINHO_PLANILHA_SCANTRON')
+        self.COLUNA_VALOR_SCANTRON = os.getenv('COLUNA_VALOR_SCANTRON')
+        self.NOME_ABA_SCANTRON = os.getenv('NOME_ABA_SCANTRON')
+
         self.URL_NFE=os.getenv('URL_NFE')
         self.NFE_USUARIO=os.getenv('NFE_USUARIO')
         self.NFE_SENHA=os.getenv('NFE_SENHA')
@@ -33,6 +37,8 @@ class Config:
             return self.CAMINHO_PLANILHA_KRYTERION
         elif tipo_planilha == "PSI":
             return self.CAMINHO_PLANILHA_PSI
+        elif tipo_planilha == "SCANTRON":
+            return self.CAMINHO_PLANILHA_SCANTRON
         return None
 
     def verificar_variaveis_env():
@@ -43,6 +49,7 @@ class Config:
             'CAMINHO_PLANILHA_VUE', 'COLUNA_VALOR_VUE', 'NOME_ABA_VUE',
             'CAMINHO_PLANILHA_KRYTERION', 'COLUNA_VALOR_KRYTERION', 'NOME_ABA_KRYTERION', 
             'CAMINHO_PLANILHA_PSI', 'COLUNA_VALOR_PSI', 'NOME_ABA_PSI'
+            'CAMINHO_PLANILHA_SCANTRON', 'COLUNA_VALOR_SCANTRON', 'NOME_ABA_SCANTRON',
         ]
 
         for var in variaveis:
