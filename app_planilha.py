@@ -1,5 +1,5 @@
 from modules.planilhas.excel_handler import automacao_completa
-from modules.planilhas.modulo_planilhas import selecionar_planilha, ler_planilha_vue, ler_planilha_kryterion, ler_planilha_psi
+from modules.planilhas.modulo_planilhas import selecionar_planilha, ler_planilha_vue, ler_planilha_kryterion, ler_planilha_psi, ler_planilha_scantron
 from modules.planilhas.uploader import executar_sequencia_navegacao
 from coordenadas import coordenadas
 from modules.login.modulo_login import fazer_login
@@ -12,10 +12,8 @@ def menu_principal():
     print("1 - Executar automação completa")
     print("2 - Selecionar planilha manualmente")
     print("3 - Testar leitura de planilhas")
-    print("4 - Só fazer login")
-    print("5 - Testar coordenadas")
-    print("6 - Só executar sequência mouse")
-    print("7 - Sair")
+    print("4 - Testar coordenadas")
+    print("5 - Sair")
     
     opcao = input("\nDigite sua opção: ")
     
@@ -27,16 +25,11 @@ def menu_principal():
         print(ler_planilha_vue())
         print(ler_planilha_kryterion())
         print(ler_planilha_psi())
+        print(ler_planilha_scantron())
+
     elif opcao == "4":
-        driver = fazer_login()
-        if driver:
-            input("Pressione Enter para fechar...")
-            driver.quit()
-    elif opcao == "5":
         coordenadas()
-    elif opcao == "6":
-        executar_sequencia_navegacao()
-    elif opcao == "7":
+    elif opcao == "5":
         print("👋 Até mais!")
         return False
     else:

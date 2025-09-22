@@ -74,7 +74,6 @@ def _processar_dados_psi(dados_psi):
         print("\n🎯 COMENTÁRIO PSI GERADO:")
     return dados_psi
 
-
 def _processar_dados_scantron(dados_scantron): 
     """Processa os dados da Scantron para formato final"""
     if dados_scantron and 'quantidade' in dados_scantron:
@@ -85,17 +84,33 @@ def _processar_dados_scantron(dados_scantron):
 def _gerar_relatorio_psi(dados_psi):
     """Gera relatório formatado para PSI"""
     return f"""
-📊 RELATÓRIO PSI DETALHADO
-==========================
-👥 TOTAL GERAL: {dados_psi['quantidade']} candidatos
-🔵 SELT: {dados_psi.get('qtd_selt', 0)} candidatos  
-🔴 Outros: {dados_psi.get('qtd_outros', 0)} candidatos
-💰 VALOR TOTAL: {dados_psi['moeda']} {dados_psi['valor_total']:,.2f}
+    📊 RELATÓRIO PSI DETALHADO
+    ==========================
+    👥 TOTAL GERAL: {dados_psi['quantidade']} candidatos
+    🔵 SELT: {dados_psi.get('qtd_selt', 0)} candidatos  
+    🔴 Outros: {dados_psi.get('qtd_outros', 0)} candidatos
+    💰 VALOR TOTAL: {dados_psi['moeda']} {dados_psi['valor_total']:,.2f}
 
-📈 ESTATÍSTICAS:
-• SELT: {(dados_psi.get('qtd_selt', 0)/dados_psi['quantidade']*100):.1f}%
-• Outros: {(dados_psi.get('qtd_outros', 0)/dados_psi['quantidade']*100):.1f}%
-"""
+    📈 ESTATÍSTICAS:
+    • SELT: {(dados_psi.get('qtd_selt', 0)/dados_psi['quantidade']*100):.1f}%
+    • Outros: {(dados_psi.get('qtd_outros', 0)/dados_psi['quantidade']*100):.1f}%
+    """
+
+def _gerar_relatorio_vue(dados_vue, relatorio_detalhado):
+    """Gera um relatório detalhado formatado para VUE"""
+    relatorio = []
+    relatorio.append("\n📋 RELATÓRIO COMPLETO - VUE")
+    relatorio.append("=" * 60)
+    
+    # Detalhamento por cliente
+    relatorio.append("📊 DISTRIBUIÇÃO POR CLIENTE:")
+    for item in relatorio_detalhado:
+        relatorio.append(f"   • {item['cliente']}: {item['quantidade']} provas ({item['percentual']:.1f}%)")
+    
+    relatorio.append("-" * 40)
+    relatorio.append(f"👥 TOTAL GERAL: {dados_vue['quantidade']} provas")
+
+    return "\n".join(relatorio)
 
 def _gerar_relatorio_kryterion(dados_kryterion):
     """Gera relatório detalhado do Kryterion por mês"""
@@ -134,31 +149,31 @@ def _gerar_relatorio_kryterion(dados_kryterion):
 def _formatar_comentario_vue(dados_vue):
     """Formata o comentário para a textbox da VUE"""
     return f""" ID: 23098
-PEARSON VUE
-Site ID: #88405
-Candidates - {dados_vue.get('quantidade', 0):02d}"""
+    PEARSON VUE
+    Site ID: #88405
+    Candidates - {dados_vue.get('quantidade', 0):02d}"""
 
 
 def _formatar_comentario_kryterion(dados_kryterion):
     """Formata o comentário para a textbox da Kryterion"""
     return f"""ID: 23167
-KRYTERION
-3T (JUL - AGO - SET)
-Candidates - {dados_kryterion.get('quantidade', 0):02d}"""
+    KRYTERION
+    3T (JUL - AGO - SET)
+    Candidates - {dados_kryterion.get('quantidade', 0):02d}"""
 
 def _formatar_comentario_psi(dados_psi):
     """Formata o comentário para a textbox da PSI"""
     return f"""ID 23157
-PSI SITE #12693 - {dados_psi.get('qtd_outros', 0):02d} Candidates
-PSI SITE #12807 (SELT) - {dados_psi.get('qtd_selt', 0):02d} Candidates"""
+    PSI SITE #12693 - {dados_psi.get('qtd_outros', 0):02d} Candidates
+    PSI SITE #12807 (SELT) - {dados_psi.get('qtd_selt', 0):02d} Candidates"""
 
 
 def _formatar_comentario_scantron(dados_scantron):
     """Formata o comentário para a textbox da Scantron"""
     return f""" ID: 23168
-MEAZURE Learning
-Center ID: #10932
-Candidates -7 {dados_scantron.get('quantidade', 0):02d}"""
+    MEAZURE Learning
+    Center ID: #10932
+    Candidates -7 {dados_scantron.get('quantidade', 0):02d}"""
 
 
 def _ler_planilha(nome, caminho_env, coluna_env, aba_env, header=0):
@@ -264,35 +279,54 @@ def _ler_planilha(nome, caminho_env, coluna_env, aba_env, header=0):
                 "valor_total": float(valor_total),
                 "moeda": "US$"
             }
-        else:
-            # ⚠️ PARA OUTRAS PLANILHAS (VUE, PSI) - COMPORTAMENTO NORMAL
-            df = pd.read_excel(caminho, sheet_name=nome_aba if nome_aba else 0, header=header)
-            print(f"✅ Estrutura: {list(df.columns)}")
-
-            # Verificar coluna de valor
+        
+        if nome == "VUE":
+            df = pd.read_excel(caminho, sheet_name=nome_aba if nome_aba else 0, header=0)
             valor_total = 0.0
-            if coluna_valor and coluna_valor in df.columns:
-                valores_validos = df[coluna_valor].notna().sum()
+            if 'Cliente ' in df.columns:
+                # Limpar e filtrar dados
+                clientes_validos = df["Cliente "].dropna().astype(str)
                 valor_total = df[coluna_valor].sum()
-                print(f"✅ Coluna '{coluna_valor}' encontrada!")
-                print(f"💰 Valores não nulos: {valores_validos}")
-                print(f"💵 Valor total: {valor_total:.2f}")
+                
+                # Contagem por cliente
+                contagem_clientes = clientes_validos.value_counts()
+                total_geral = len(clientes_validos)
+                
+                print(f"👥 RELATÓRIO DETALHADO - CLIENTES VUE:")
+                print("=" * 50)
+                
+                relatorio_detalhado = []
+                
+                # Gerar relatório para cada cliente
+                for cliente, quantidade in contagem_clientes.items():
+                    percentual = (quantidade / total_geral) * 100
+                    print(f"   📊 {cliente}: {percentual:.1f}% - {quantidade} provas")
+                    relatorio_detalhado.append({
+                        'cliente': cliente,
+                        'quantidade': quantidade,
+                        'percentual': percentual
+                    })
+                retorno = {
+                    "tipo": nome,
+                    "quantidade": int(len(df)),
+                    "valor_total": float(valor_total),
+                    "moeda": "US$"
+                }
+                print("=" * 50)
+                
+                # Gerar relatório formatado
+                print(_gerar_relatorio_vue(retorno, relatorio_detalhado))
+                    
             else:
-                print(f"❌ Coluna '{coluna_valor}' NÃO encontrada!")
-                return None
+                print("⚠️ Coluna 'Cliente' não encontrada para análise VUE")
+                    # 🔎 CASO ESPECIAL PSI - Contar SELT vs Outros
 
-            # Dados base de retorno para outras planilhas
-            retorno = {
-                "tipo": nome,
-                "quantidade": int(len(df)),
-                "valor_total": float(valor_total),
-                "moeda": "US$"
-            }
-
-            # 🔎 CASO ESPECIAL PSI - Contar SELT vs Outros
         if nome == "PSI":
+            df = pd.read_excel(caminho, sheet_name=nome_aba if nome_aba else 0, header=0)
+            valor_total = 0.0
             # Verificar se tem coluna 'Cliente' para identificar SELT
             if 'Cliente ' in df.columns:
+                valor_total = df[coluna_valor].sum()
                 clientes_validos = df["Cliente "].dropna().astype(str)
                 qtd_selt = clientes_validos.str.contains("selt", case=False, na=False).sum()
                 qtd_outros = len(clientes_validos) - qtd_selt
@@ -304,6 +338,12 @@ def _ler_planilha(nome, caminho_env, coluna_env, aba_env, header=0):
                 print(f"   ✅ Outros: {qtd_outros}")
                 print(f"   ✅ TOTAL GERAL: {total_geral}")
 
+                retorno = {
+                    "tipo": nome,
+                    "quantidade": int(len(df)),
+                    "valor_total": float(valor_total),
+                    "moeda": "US$"
+                }
                 # Atualizar quantidade para o total real de candidatos
                 retorno["quantidade"] = int(total_geral)
                 retorno["qtd_selt"] = int(qtd_selt)
