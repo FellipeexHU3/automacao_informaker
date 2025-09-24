@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 import sys
 import os
+from .nfe_selecao import get_caminho_planilha, get_tipo_planilha
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from modules.nfe.nfe_config import CONFIG_NFE, MAPEAMENTO_CAMPOS
 
@@ -11,35 +12,41 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class NFE:
-    def __init__(self, caminho_planilha: str = None, dados: List[Dict] = None):
+    def __init__(self, caminho_planilha: str = None, dados: List[Dict] = None, tipo_planilha: str = None):
         """
-        Inicializa o objeto NFE com dados de planilha ou array manual
-        
-        Args:
-            caminho_planilha: Caminho para arquivo Excel/CSV
-            dados: Array de dicionários com dados manuais
+        Mantém compatibilidade com código existente
         """
         self.notas = []
         self.notas_pendentes = []
         self.notas_processadas = []
         
-        # Usar caminho do .env se não especificado
-        if caminho_planilha is None and CONFIG_NFE['caminho_planilha']:
-            caminho_planilha = CONFIG_NFE['caminho_planilha']
+        # 👇 PRIORIDADE: Se veio dados, ignora planilha
+        if dados is not None:
+            self.carregar_de_array(dados)
+            self.tipo_planilha = tipo_planilha or 'manual'
+            return
+        
+        # 👇 Se não tem caminho, usa o selecionado globalmente
+        if caminho_planilha is None:
+            caminho_planilha = get_caminho_planilha()
+            tipo_planilha = get_tipo_planilha()
+        
+        self.tipo_planilha = tipo_planilha
+        self.caminho_planilha = caminho_planilha
         
         if caminho_planilha:
             self.carregar_de_planilha(caminho_planilha)
-        elif dados:
-            self.carregar_de_array(dados)
-        else:
-            logger.warning("NFE inicializado sem dados")
     
     def carregar_de_planilha(self, caminho_planilha: str):
-        """Carrega dados de uma planilha Excel"""
+        """Carrega dados de uma planilha Excel com normalização"""
         try:
             # Ler planilha mantendo o formato original das colunas
             df = pd.read_excel(caminho_planilha)
-            self.dados = df  # 👈 ARMAZENA O DATAFRAME COMPLETO
+            
+            # 👇 NORMALIZAR NOMES DAS COLUNAS
+            df = self.normalizar_colunas(df)
+            
+            self.dados = df
             self.notas = df.to_dict('records')
             
             logger.info(f"Carregadas {len(self.notas)} notas da planilha: {caminho_planilha}")
@@ -48,7 +55,46 @@ class NFE:
         except Exception as e:
             logger.error(f"Erro ao carregar planilha {caminho_planilha}: {e}")
             raise
-    
+
+    def normalizar_colunas(self, df):
+        """Normaliza os nomes das colunas para padrão interno"""
+        from .nfe_selecao import get_coluna_data
+        
+        # 👇 CONVERTER COLUNAS PARA STRING PRIMEIRO
+        df.columns = [str(col) for col in df.columns]
+        
+        coluna_data_original = get_coluna_data(self.tipo_planilha)
+        
+        # 👇 Verifica se a coluna existe (agora ambas são strings)
+        if coluna_data_original in df.columns:
+            df = df.rename(columns={coluna_data_original: 'data_emissao'})
+            print(f"✅ Coluna de data normalizada: '{coluna_data_original}' → 'data_emissao'")
+        else:
+            # Fallback: procurar por padrões
+            colunas_candidatas = []
+            
+            if self.tipo_planilha == '103':
+                # Para 103, procurar coluna 103 (como string ou número)
+                if '103' in df.columns:
+                    colunas_candidatas = ['103']
+                else:
+                    # Verificar se há coluna numérica 103
+                    for col in df.columns:
+                        if str(col).strip() == '103':
+                            colunas_candidatas = [col]
+                            break
+            else:
+                # Para 43, procurar colunas com "Data"
+                colunas_candidatas = [col for col in df.columns if 'Data' in str(col)]
+            
+            if colunas_candidatas:
+                df = df.rename(columns={colunas_candidatas[0]: 'data_emissao'})
+                print(f"⚠️  Coluna renomeada por fallback: '{colunas_candidatas[0]}' → 'data_emissao'")
+            else:
+                print("❌ Nenhuma coluna de data encontrada")
+        
+        return df  # 👈 ESTA LINHA ESTAVA FORA DA FUNÇÃO!
+
     def carregar_de_array(self, dados: List[Dict]):
         """Carrega dados de um array manual"""
         self.notas = dados
@@ -147,7 +193,7 @@ class NFE:
         """Exporta a planilha com os dados atualizados"""
         try:
             if caminho_saida is None:
-                caminho_saida = CONFIG_NFE['caminho_planilha']
+                caminho_saida = self.caminho_planilha 
             
             df = pd.DataFrame(self.notas)
             df.to_excel(caminho_saida, index=False)
@@ -194,5 +240,5 @@ class NFE:
             'url': CONFIG_NFE['url_nfe'],
             'usuario': CONFIG_NFE['usuario'],
             'senha': CONFIG_NFE['senha'],
-            'inscricao_municipal': CONFIG_NFE['inscricao_municipal']
+            'inscricao_municipal': CONFIG_NFE['ir'] 
         }

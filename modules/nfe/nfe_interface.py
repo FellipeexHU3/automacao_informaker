@@ -35,21 +35,13 @@ def automacao_nfe():
         opcao = menu_nfe()
         
         if opcao == "1":
-            caminho = input(f"Caminho da planilha (Enter para padrão: {CONFIG_NFE['caminho_planilha']}): ").strip()
-            if not caminho and CONFIG_NFE['caminho_planilha']:
-                caminho = CONFIG_NFE['caminho_planilha']
-            
-            if os.path.exists(caminho):
-                try:
-                    nfe = NFE(caminho)
-                    automacao = AutomacaoNFE(nfe)
-                    print(f"✅ Planilha carregada com {len(nfe.notas)} notas")
-                    print(gerar_relatorio_processamento(nfe))
-                except Exception as e:
-                    print(f"❌ Erro ao carregar planilha: {e}")
-            else:
-                print("❌ Arquivo não encontrado")
-        
+            try:
+                nfe = NFE()
+                automacao = AutomacaoNFE(nfe)
+                print(f"✅ Planilha {nfe.tipo_planilha} carregada com {len(nfe.notas)} notas")
+            except Exception as e:
+                print(f"❌ Erro ao carregar planilha: {e}")
+                
         elif opcao == "2":
             if nfe:
                 pendentes = nfe.listar_notas_pendentes()

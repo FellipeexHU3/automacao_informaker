@@ -10,7 +10,8 @@ CONFIG_NFE = {
     'usuario': os.getenv('NFE_USUARIO'),
     'senha': os.getenv('NFE_SENHA'),
     'ir': os.getenv('NFE_INSCRICAO_MUNICIPAL'),
-    'caminho_planilha': os.getenv('NFE_CAMINHO_PLANILHA'),
+    'caminho_planilha_103': os.getenv('NFE_CAMINHO_PLANILHA_103'),
+    'caminho_planilha_43': os.getenv('NFE_CAMINHO_PLANILHA_43'),
     'colunas_planilha': [
         '103',           # Data (DD/MM/AA)
         'RPS',           # Número do RPS
