@@ -94,7 +94,7 @@ def executar_sequencia_navegacao(dados_planilha):
         time.sleep(0.5)
         pyautogui.press('enter')
         pyautogui.press('enter')
-        time.sleep(15)  # Espera a janela abrir
+        time.sleep(7)  # Espera a janela abrir
         pyautogui.press('f6')
         time.sleep(0.2)
         pyautogui.press('f6')

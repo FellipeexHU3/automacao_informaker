@@ -18,9 +18,10 @@ def menu_principal():
     print("1 - Executar automação completa")
     print("2 - Testar planilha")
     print("3 - Ver detalhes da planilha")
-    print("4 - Trocar planilha")  # 👈 NOVA OPÇÃO
-    print("5 - Sair")
-    
+    print("4 - Trocar planilha")
+    print("5 - Testar com dados controlados")
+    print("6 - Sair")
+
     return input("\nDigite sua opção: ")
 
 def main():
@@ -51,8 +52,13 @@ def main():
             from modules.nfe.nfe_selecao import reset_selecao
             reset_selecao()
             print("🔄 Planilha resetada. Selecione novamente no próximo menu.")
-            
+
         elif opcao == "5":
+            from modules.nfe.nfe_teste_seguro import teste_super_seguro_com_cores
+            teste_super_seguro_com_cores()
+            print("teste com dados controlados finalizado.")  
+            
+        elif opcao == "6":
             print("👋 Até mais!")
             break
             

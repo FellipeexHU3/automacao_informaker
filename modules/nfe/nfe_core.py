@@ -6,7 +6,7 @@ import sys
 import os
 from .nfe_selecao import get_caminho_planilha, get_tipo_planilha
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from modules.nfe.nfe_config import CONFIG_NFE, MAPEAMENTO_CAMPOS
+from .nfe_config import CONFIG_NFE, get_config_planilha
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -75,12 +75,12 @@ class NFE:
             
             if self.tipo_planilha == '103':
                 # Para 103, procurar coluna 103 (como string ou número)
-                if '103' in df.columns:
-                    colunas_candidatas = ['103']
+                if 'Data Movto/Competência' in df.columns:
+                    colunas_candidatas = ['Data Movto/Competência']
                 else:
                     # Verificar se há coluna numérica 103
                     for col in df.columns:
-                        if str(col).strip() == '103':
+                        if str(col).strip() == 'Data Movto/Competência':
                             colunas_candidatas = [col]
                             break
             else:
@@ -104,11 +104,20 @@ class NFE:
     
     def _identificar_notas_pendentes(self):
         """Identifica quais notas ainda não foram processadas"""
+        # 👇 CORREÇÃO AQUI - USAR get_config_planilha
+        print(f"🔧 DEBUG: Tipo planilha = {self.tipo_planilha}")
+        config = get_config_planilha(self.tipo_planilha)
+
+        print(f"🔧 DEBUG: Config = {config}")  # 👈 ADICIONAR
+    
+        if not config or 'colunas_processamento' not in config:
+            print(f"❌ ERRO: Configuração inválida para {self.tipo_planilha}")
+            return
+        coluna_nfse, coluna_auth = config['colunas_processamento']
+        
         self.notas_pendentes = []
         self.notas_processadas = []
-        
-        coluna_nfse, coluna_auth = CONFIG_NFE['colunas_processamento']
-        
+
         for i, nota in enumerate(self.notas):
             # Verifica se NFSe e Autenticidade estão preenchidos
             nfse_preenchido = self._campo_preenchido(nota.get(coluna_nfse))
@@ -163,7 +172,8 @@ class NFE:
     
     def marcar_como_processada(self, indice_array: int, nfse: str, autenticidade: str):
         """Marca uma nota como processada com seus dados"""
-        coluna_nfse, coluna_auth = CONFIG_NFE['colunas_processamento']
+        config = get_config_planilha(self.tipo_planilha)
+        coluna_nfse, coluna_auth = config['colunas_processamento']
         
         for nota in self.notas_pendentes:
             if nota['indice_array'] == indice_array:
@@ -225,7 +235,8 @@ class NFE:
     
     def listar_notas_processadas(self) -> List[Dict]:
         """Lista todas as notas processadas"""
-        coluna_nfse = CONFIG_NFE['colunas_processamento'][0]
+        config = get_config_planilha(self.tipo_planilha)
+        coluna_nfse = config['colunas_processamento'][0]
         return [{
             'linha_planilha': nota['indice_planilha'],
             'indice_array': nota['indice_array'],
@@ -242,3 +253,7 @@ class NFE:
             'senha': CONFIG_NFE['senha'],
             'inscricao_municipal': CONFIG_NFE['ir'] 
         }
+        def exportar_com_formato(self, caminho_saida=None):
+            """Método alternativo que usa o sistema seguro"""
+            from .nfe_backup_seguro import exportar_com_formato
+            return exportar_com_formato(self, caminho_saida)
