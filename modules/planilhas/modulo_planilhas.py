@@ -380,3 +380,77 @@ def selecionar_tipo_planilha():
     else:
         print("❌ Opção inválida")
         return None
+
+
+# === NOVO SISTEMA DE HANDLERS - ADICIONE NO FINAL DO ARQUIVO ===
+
+def selecionar_planilha_com_handlers():
+    """
+    Versão nova que usa handlers - compatível com o sistema antigo
+    """
+    print("📋 SELECIONAR PLANILHA - SISTEMA ATUALIZADO (HANDLERS)")
+    print("=" * 50)
+    
+    try:
+        # Import dos handlers (com tratamento de erro)
+        try:
+            from modules.planilhas.handlers.planilha_factory import PlanilhaFactory
+        except ImportError as e:
+            print(f"❌ Sistema de handlers não disponível: {e}")
+            print("🔄 Voltando para sistema tradicional...")
+            return selecionar_planilha()  # Fallback para sistema antigo
+        
+        # Usa a mesma seleção de tipo do sistema antigo
+        tipo_selecionado = selecionar_tipo_planilha()
+        if not tipo_selecionado:
+            return None
+        
+        # Pega o caminho do config (igual ao sistema antigo)
+        mapeamento_caminhos = {
+            'VUE': getattr(config, "CAMINHO_PLANILHA_VUE", None),
+            'KRYTERION': getattr(config, "CAMINHO_PLANILHA_KRYTERION", None),
+            'PSI': getattr(config, "CAMINHO_PLANILHA_PSI", None),
+            'SCANTRON': getattr(config, "CAMINHO_PLANILHA_SCANTRON", None)
+        }
+        
+        caminho = mapeamento_caminhos.get(tipo_selecionado)
+        if not caminho or not os.path.exists(caminho):
+            print(f"❌ Arquivo não encontrado: {caminho}")
+            return None
+        
+        print(f"✅ Processando {tipo_selecionado} com handlers...")
+        
+        # Processa com handler
+        dados = PlanilhaFactory.processar_planilha_completa(caminho, tipo_selecionado.lower())
+        
+        if dados:
+            print(f"✅ Planilha {tipo_selecionado} processada com handlers!")
+            
+            # Aplica o mesmo processamento do sistema antigo
+            if tipo_selecionado == 'VUE':
+                dados = _processar_dados_vue(dados)
+            elif tipo_selecionado == 'KRYTERION':
+                dados = _processar_dados_kryterion(dados)
+            elif tipo_selecionado == 'PSI':
+                dados = _processar_dados_psi(dados)
+            elif tipo_selecionado == 'SCANTRON':
+                dados = _processar_dados_scantron(dados)
+            
+            return dados
+        else:
+            print("❌ Falha no processamento com handlers")
+            return None
+        
+    except Exception as e:
+        print(f"❌ Erro no sistema de handlers: {e}")
+        print("🔄 Voltando para sistema tradicional...")
+        return selecionar_planilha()  # Fallback
+
+def selecionar_planilha_hibrido(usar_handlers=False):
+    """
+    Função principal hibrida - escolhe entre sistema antigo e novo
+    """
+    if usar_handlers:
+        return selecionar_planilha_com_handlers()
+    else:
+        return selecionar_planilha()  # Seu sistema antigo

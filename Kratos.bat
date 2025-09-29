@@ -1,6 +1,6 @@
 @echo off
 echo automacao Informaker
-python automacao_modular.py
+python app.py
 pause
 
 

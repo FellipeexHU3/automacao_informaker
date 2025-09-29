@@ -227,7 +227,7 @@ class NFE:
         return [{
             'linha_planilha': nota['indice_planilha'],
             'indice_array': nota['indice_array'],
-            'data': nota['dados'].get('103', 'N/A'),
+            'data': nota['dados'].get('Data \nMovimento', 'N/A'),
             'cliente': nota['dados'].get('Nome', 'N/A'),
             'valor': nota['dados'].get('Valor', 'N/A'),
             'status': 'Pendente'
