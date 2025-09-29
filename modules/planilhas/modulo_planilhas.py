@@ -285,41 +285,54 @@ def _ler_planilha(nome, caminho_env, coluna_env, aba_env, header=0):
             valor_total = 0.0
             if 'Cliente ' in df.columns:
                 # Limpar e filtrar dados
-                clientes_validos = df["Cliente "].dropna().astype(str)
+                candidatos_validos = df["Cliente "].dropna().astype(str)
                 valor_total = df[coluna_valor].sum()
                 
                 # Contagem por cliente
-                contagem_clientes = clientes_validos.value_counts()
-                total_geral = len(clientes_validos)
+                contagem_candidatos = candidatos_validos.value_counts()  # ✅ VARIÁVEL CORRETA
+                total_geral = len(candidatos_validos)
                 
-                print(f"👥 RELATÓRIO DETALHADO - CLIENTES VUE:")
-                print("=" * 50)
+                print(f"✅ Coluna '{coluna_valor}' encontrada!")
+                print(f"💰 Quantidade de Candidatos: {total_geral}")  # ✅ MOSTRA APENAS O TOTAL
+                print(f"💵 Valor total: {valor_total:.2f}")
                 
                 relatorio_detalhado = []
                 
-                # Gerar relatório para cada cliente
-                for cliente, quantidade in contagem_clientes.items():
+                for cliente, quantidade in contagem_candidatos.items():  
                     percentual = (quantidade / total_geral) * 100
-                    print(f"   📊 {cliente}: {percentual:.1f}% - {quantidade} provas")
                     relatorio_detalhado.append({
                         'cliente': cliente,
                         'quantidade': quantidade,
                         'percentual': percentual
                     })
+                
                 retorno = {
                     "tipo": nome,
                     "quantidade": int(len(df)),
                     "valor_total": float(valor_total),
-                    "moeda": "US$"
+                    "moeda": "US$",
+                    "relatorio_detalhado": relatorio_detalhado  # ✅ ADICIONA RELATÓRIO AOS DADOS
                 }
                 print("=" * 50)
                 
                 # Gerar relatório formatado
                 print(_gerar_relatorio_vue(retorno, relatorio_detalhado))
-                    
+                
             else:
                 print("⚠️ Coluna 'Cliente' não encontrada para análise VUE")
-                    # 🔎 CASO ESPECIAL PSI - Contar SELT vs Outros
+                # Fallback básico
+                if coluna_valor and coluna_valor in df.columns:
+                    valor_total = df[coluna_valor].sum()
+                    retorno = {
+                        "tipo": nome,
+                        "quantidade": int(len(df)),
+                        "valor_total": float(valor_total),
+                        "moeda": "US$"
+                    }
+                else:
+                    print(f"❌ Coluna '{coluna_valor}' não encontrada!")
+                    return None
+                            
 
         if nome == "PSI":
             df = pd.read_excel(caminho, sheet_name=nome_aba if nome_aba else 0, header=0)
@@ -385,27 +398,31 @@ def selecionar_tipo_planilha():
 # === NOVO SISTEMA DE HANDLERS - ADICIONE NO FINAL DO ARQUIVO ===
 
 def selecionar_planilha_com_handlers():
-    """
-    Versão nova que usa handlers - compatível com o sistema antigo
-    """
+    """Versão nova que usa handlers - compatível com o sistema antigo"""
     print("📋 SELECIONAR PLANILHA - SISTEMA ATUALIZADO (HANDLERS)")
     print("=" * 50)
     
     try:
-        # Import dos handlers (com tratamento de erro)
-        try:
-            from modules.planilhas.handlers.planilha_factory import PlanilhaFactory
-        except ImportError as e:
-            print(f"❌ Sistema de handlers não disponível: {e}")
-            print("🔄 Voltando para sistema tradicional...")
-            return selecionar_planilha()  # Fallback para sistema antigo
+        # 👇 DEBUG DETALHADO - descobrir onde está falhando
+        print("🔧 ETAPA 1: Tentando importar PlanilhaFactory...")
         
-        # Usa a mesma seleção de tipo do sistema antigo
+        try:    
+        
+            # Tentativa alternativa
+            from .handlers.planilha_factory import PlanilhaFactory
+            print("✅ ETAPA 1: Import alternativo funcionou!")
+        except ImportError as e2:
+            print(f"❌ ETAPA 1: Import falhou: {e2}")
+            raise
+    
+        print("🔧 ETAPA 2: Selecionando tipo de planilha...")
         tipo_selecionado = selecionar_tipo_planilha()
         if not tipo_selecionado:
             return None
         
-        # Pega o caminho do config (igual ao sistema antigo)
+        print(f"🔧 ETAPA 3: Tipo selecionado: {tipo_selecionado}")
+        
+        # Pega o caminho do config
         mapeamento_caminhos = {
             'VUE': getattr(config, "CAMINHO_PLANILHA_VUE", None),
             'KRYTERION': getattr(config, "CAMINHO_PLANILHA_KRYTERION", None),
@@ -414,17 +431,19 @@ def selecionar_planilha_com_handlers():
         }
         
         caminho = mapeamento_caminhos.get(tipo_selecionado)
+        print(f"🔧 ETAPA 4: Caminho da planilha: {caminho}")
+        
         if not caminho or not os.path.exists(caminho):
             print(f"❌ Arquivo não encontrado: {caminho}")
             return None
         
-        print(f"✅ Processando {tipo_selecionado} com handlers...")
+        print(f"✅ ETAPA 5: Processando {tipo_selecionado} com handlers...")
         
         # Processa com handler
         dados = PlanilhaFactory.processar_planilha_completa(caminho, tipo_selecionado.lower())
         
         if dados:
-            print(f"✅ Planilha {tipo_selecionado} processada com handlers!")
+            print(f"✅ ETAPA 6: Planilha {tipo_selecionado} processada com handlers!")
             
             # Aplica o mesmo processamento do sistema antigo
             if tipo_selecionado == 'VUE':
@@ -438,11 +457,13 @@ def selecionar_planilha_com_handlers():
             
             return dados
         else:
-            print("❌ Falha no processamento com handlers")
+            print("❌ ETAPA 6: Falha no processamento com handlers")
             return None
         
     except Exception as e:
-        print(f"❌ Erro no sistema de handlers: {e}")
+        print(f"❌ ERRO GERAL no sistema de handlers: {e}")
+        import traceback
+        traceback.print_exc()
         print("🔄 Voltando para sistema tradicional...")
         return selecionar_planilha()  # Fallback
 

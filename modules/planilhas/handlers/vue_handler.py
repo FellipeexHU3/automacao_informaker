@@ -1,14 +1,7 @@
-import sys
-import os
-
-# Corrige path de importação
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-if parent_dir not in sys.path:
-    sys.path.append(parent_dir)
-
-from modules.planilhas.core.base_planilha import BasePlanilhaHandler
+# modules/planilhas/handlers/vue_handler.py
+from ..core.base_planilha import BasePlanilhaHandler
 import pandas as pd
+from core.config import config
 
 class VuePlanilhaHandler(BasePlanilhaHandler):
     """Handler para planilhas VUE"""
@@ -22,28 +15,25 @@ class VuePlanilhaHandler(BasePlanilhaHandler):
         
         print("🔍 Colunas encontradas:", list(self.df.columns))
         
-        colunas_esperadas = ['Nome', 'CPF', 'Valor', 'Data', 'Status']
+        colunas_esperadas = ['Cliente ', 'Valor']
         colunas_encontradas = [col for col in colunas_esperadas if col in self.df.columns]
         
-        if len(colunas_encontradas) >= 3:
+        if len(colunas_encontradas) >= 1:
             return True, f"Estrutura VUE válida - Colunas: {colunas_encontradas}"
         return False, f"Estrutura VUE inválida - Colunas: {list(self.df.columns)}"
     
     def processar_linha(self, linha):
         return {
-            'nome': linha.get('Nome', ''),
-            'cpf': linha.get('CPF', ''),
-            'valor': linha.get('Valor', 0),
-            'data': linha.get('Data', ''),
-            'status': linha.get('Status', '')
+            'cliente': linha.get('Cliente ', ''),
+            'valor': linha.get('Valor', 0)
         }
-    def processar_planilha_vue(caminho_planilha):
-    """Função compatível com o factory"""
+
+def processar_planilha_vue(caminho_planilha):
+    """Função compatível com o factory - VERSÃO SIMPLIFICADA"""
     try:
-        handler = VuePlanilhaHandler()
-        handler.carregar_planilha(caminho_planilha)
+        print(f"🔧 Handler VUE processando: {caminho_planilha}")
         
-        # Aqui você adapta a lógica do seu sistema tradicional VUE
+        # Lógica direta do sistema tradicional
         df = pd.read_excel(caminho_planilha, sheet_name=getattr(config, "NOME_ABA_VUE", 0), header=0)
         coluna_valor = getattr(config, "COLUNA_VALOR_VUE", None)
         
@@ -51,7 +41,7 @@ class VuePlanilhaHandler(BasePlanilhaHandler):
         if coluna_valor and coluna_valor in df.columns:
             valor_total = df[coluna_valor].sum()
         
-        # Lógica de clientes (do sistema tradicional)
+        # Lógica de clientes
         relatorio_detalhado = []
         if 'Cliente ' in df.columns:
             clientes_validos = df["Cliente "].dropna().astype(str)
@@ -66,13 +56,16 @@ class VuePlanilhaHandler(BasePlanilhaHandler):
                     'percentual': percentual
                 })
         
-        return {
+        resultado = {
             "tipo": "VUE",
             "quantidade": int(len(df)),
             "valor_total": float(valor_total),
             "moeda": "US$",
             "relatorio_detalhado": relatorio_detalhado
         }
+        
+        print(f"✅ Handler VUE finalizado: {resultado['quantidade']} candidatos")
+        return resultado
         
     except Exception as e:
         print(f"❌ Erro no handler VUE: {e}")

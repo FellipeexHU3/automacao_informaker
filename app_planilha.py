@@ -33,8 +33,8 @@ def menu_principal():
     elif opcao == "2":
         # 👇 OPÇÃO 2 AGORA É SEGURA
         try:
-            from modules.planilhas.teste_handlers import testar_novos_handlers
-            testar_novos_handlers()
+            from modules.planilhas.modulo_planilhas import selecionar_planilha_com_handlers
+            selecionar_planilha_com_handlers()
         except ImportError:
             print("❌ Sistema de handlers não disponível")
             print("💡 Use a opção 1 (Sistema Tradicional)")
