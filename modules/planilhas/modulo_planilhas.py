@@ -148,32 +148,24 @@ def _gerar_relatorio_kryterion(dados_kryterion):
 
 def _formatar_comentario_vue(dados_vue):
     """Formata o comentário para a textbox da VUE"""
-    return f""" ID: 23098
-    PEARSON VUE
-    Site ID: #88405
-    Candidates - {dados_vue.get('quantidade', 0):02d}"""
+    return f""" ID: 23099\nPEARSON VUE\nSite ID: #88405\nCandidates - {dados_vue.get('quantidade', 0):02d}"""
 
 
 def _formatar_comentario_kryterion(dados_kryterion):
     """Formata o comentário para a textbox da Kryterion"""
-    return f"""ID: 23167
-    KRYTERION
-    3T (JUL - AGO - SET)
-    Candidates - {dados_kryterion.get('quantidade', 0):02d}"""
+    return f"""ID: 23169\nKRYTERION\n4T (OUT - NOV - DEZ)\nCandidates - {dados_kryterion.get('quantidade', 0):02d}"""
 
 def _formatar_comentario_psi(dados_psi):
     """Formata o comentário para a textbox da PSI"""
-    return f"""ID 23157
-    PSI SITE #12693 - {dados_psi.get('qtd_outros', 0):02d} Candidates
-    PSI SITE #12807 (SELT) - {dados_psi.get('qtd_selt', 0):02d} Candidates"""
+    return f"""ID 23158\nPSI SITE #12693 - {dados_psi.get('qtd_outros', 0):02d} Candidates\nPSI SITE #12807 (SELT) - {dados_psi.get('qtd_selt', 0):02d} Candidates"""
 
 
 def _formatar_comentario_scantron(dados_scantron):
     """Formata o comentário para a textbox da Scantron"""
-    return f""" ID: 23168
+    return f""" ID: 23170
     MEAZURE Learning
     Center ID: #10932
-    Candidates -7 {dados_scantron.get('quantidade', 0):02d}"""
+    Candidates - {dados_scantron.get('quantidade', 0):02d}"""
 
 
 def _ler_planilha(nome, caminho_env, coluna_env, aba_env, header=0):
@@ -308,7 +300,7 @@ def _ler_planilha(nome, caminho_env, coluna_env, aba_env, header=0):
                 
                 retorno = {
                     "tipo": nome,
-                    "quantidade": int(len(df)),
+                    "quantidade": quantidade,
                     "valor_total": float(valor_total),
                     "moeda": "US$",
                     "relatorio_detalhado": relatorio_detalhado  # ✅ ADICIONA RELATÓRIO AOS DADOS
@@ -325,7 +317,7 @@ def _ler_planilha(nome, caminho_env, coluna_env, aba_env, header=0):
                     valor_total = df[coluna_valor].sum()
                     retorno = {
                         "tipo": nome,
-                        "quantidade": int(len(df)),
+                        "quantidade": quantidade,
                         "valor_total": float(valor_total),
                         "moeda": "US$"
                     }

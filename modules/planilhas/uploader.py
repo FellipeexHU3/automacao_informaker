@@ -118,7 +118,7 @@ def executar_sequencia_navegacao(dados_planilha):
         time.sleep(1)
         pyautogui.write(str(observacao))
         pyautogui.press('enter')
-        time.sleep(7)  # Espera o upload completar 
+        time.sleep(5)  # Espera o upload completar 
         print("✅ Navegação concluída!")
         input("\nPressione Enter para continuar...")
         return True

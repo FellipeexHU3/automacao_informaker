@@ -17,7 +17,8 @@ def menu_principal():
     print("3 - Selecionar planilha manualmente")
     print("4 - Testar leitura de planilhas")
     print("5 - Testar coordenadas")
-    print("6 - Sair")
+    print("6 - COMPARAR PLANILHAS KRYTERION")
+    print("7 - Sair")
     
     opcao = input("\nDigite sua opção: ")
     
@@ -58,6 +59,15 @@ def menu_principal():
         coordenadas()
         
     elif opcao == "6":
+        try:
+            from modules.planilhas.handlers.comparador_planilhas import executar_comparacao_planilhas
+            executar_comparacao_planilhas()
+        except ImportError as e:
+            print(f"❌ Módulo de comparação não disponível: {e}")
+        except Exception as e:
+            print(f"❌ Erro ao executar comparação: {e}")
+    
+    elif opcao == "7":
         print("👋 Até mais!")
         return False
         

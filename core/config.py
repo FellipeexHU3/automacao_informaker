@@ -7,6 +7,9 @@ load_dotenv()
 class Config:
     def __init__(self):
         # Suas variáveis de planilha
+        self.CAMINHO_PLANILHA_DESTINO_COMPARACAO1 = os.getenv('CAMINHO_PLANILHA_DESTINO_COMPARACAO1')
+        self.CAMINHO_PLANILHA_DESTINO_COMPARACAO2 = os.getenv('CAMINHO_PLANILHA_DESTINO_COMPARACAO2')
+        
 
         self.CAMINHO_PLANILHA_PSI = os.getenv('CAMINHO_PLANILHA_PSI')
         self.COLUNA_VALOR_PSI = os.getenv('COLUNA_VALOR_PSI')
