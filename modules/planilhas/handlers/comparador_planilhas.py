@@ -61,7 +61,7 @@ class ComparadorPlanilhasKryterion:
                         print(f"   👀 Exemplo de dados (primeira linha):")
                         primeira_linha = df.iloc[0]
                         for coluna, valor in primeira_linha.items():
-                            if pd.notna(valor):
+                            if pd.notna(valor) and coluna != 'Observações':
                                 print(f"      {coluna}: {valor}")
                     
                     dfs_kryterion.append(df)
@@ -116,85 +116,348 @@ class ComparadorPlanilhasKryterion:
             print(f"❌ Erro ao carregar planilha destino: {e}")
             return False
     
-    def extrair_nomes_kryterion(self):
-        """Extrai nomes da coluna Candidato da Kryterion"""
-        nomes_kryterion = set()
+    def normalizar_nome(self, nome):
+        """Normaliza nome para comparação flexível"""
+        import unicodedata
+        import re
+        
+        if pd.isna(nome) or nome == "":
+            return ""
+        
+        nome_str = str(nome)
+        # Remove conteúdo entre chaves e números no início
+        nome_str = re.sub(r'\{.*?\}', '', nome_str)
+        nome_str = re.sub(r'^\d+\s*', '', nome_str)
+        
+        # Remove acentos e converte para maiúsculas
+        nome_str = unicodedata.normalize('NFKD', nome_str)
+        nome_str = ''.join(c for c in nome_str if not unicodedata.combining(c))
+        
+        # Remove espaços extras e caracteres especiais
+        nome_str = re.sub(r'[^A-Z\s]', '', nome_str.upper())
+        nome_str = re.sub(r'\s+', ' ', nome_str).strip()
+        
+        return nome_str
+    
+    def normalizar_curso(self, curso):
+        """Normaliza nome do curso para comparação flexível - CORRIGIDA"""
+        if pd.isna(curso) or curso == "":
+            return ""
+        
+        curso_str = str(curso).upper().strip()
+        
+        # CORREÇÃO: Remove prefixos comuns incluindo "GOOGLE CLOUD -"
+        substituicoes = {
+            'GOOGLE CLOUD - ': '',
+            'CERTIFIED ': '',
+            'CERTIFICATE ': '',
+            'CERTIFICATION ': '',
+            'PROFESSIONAL ': '',
+            'ASSOCIATE ': '',
+            'SPECIALIST ': '',
+            '(ENGLISH)': '',
+            '(PORTUGUESE)': '',
+            'PORTUGUESE': '',
+            'ENGLISH': '',
+            ' - ': ' ',
+            '&': 'AND',
+            '  ': ' '
+        }
+        
+        for old, new in substituicoes.items():
+            curso_str = curso_str.replace(old, new)
+        
+        # Remove palavras comuns muito curtas
+        palavras = curso_str.split()
+        palavras_filtradas = [p for p in palavras if len(p) > 2]
+        curso_str = ' '.join(palavras_filtradas)
+            
+        return curso_str.strip()
+
+    def normalizar_cliente(self, cliente):
+        """Normaliza cliente - CORRIGIDA para tratar espaços"""
+        if pd.isna(cliente) or cliente == "":
+            return ""
+        
+        cliente_str = str(cliente).upper().strip()
+        # CORREÇÃO: Remove espaços extras
+        cliente_str = ' '.join(cliente_str.split())
+        return cliente_str
+    
+    def extrair_chave_kryterion(self, row):
+        """Extrai chave única para comparação da Kryterion - VERSÃO COMPLETA"""
+        # Filtra apenas Completed e não Waived
+        status = row.get('Status', '')
+        if pd.isna(status) or str(status).upper() != 'COMPLETED':
+            return None
+        
+        # Verifica se é Waived
+        if 'WAIVED' in str(status).upper():
+            return None
+        
+        # Verifica NO SHOW pelas observações
+        observacoes = str(row.get('Observações', '')).upper()
+        if 'NO SHOW' in observacoes:
+            return None
+        
+        # Verifica NO SHOW pelos horários 00:00
+        hora_inicio = str(row.get('Hora Início Real', ''))
+        hora_fim = str(row.get('Hora Fim Real', ''))
+        if '00:00:00' in hora_inicio and '00:00:00' in hora_fim:
+            return None
+        
+        # Extrai e normaliza dados
+        nome = self.normalizar_nome(row.get('Candidato ', ''))
+        if not nome:
+            return None
+        
+        curso = self.normalizar_curso(row.get('Exam', ''))
+        cliente = self.normalizar_cliente(row.get('Cliente ', ''))
+        data = row.get('Data')
+        
+        if pd.isna(data) or pd.isna(curso):
+            return None
+        
+        # Formata data para YYYY-MM para comparação por MÊS (não dia exato)
+        
+        
+        try:
+            if hasattr(data, 'strftime'):
+                data_str = data.strftime('%Y-%m')
+            else:
+                # Tenta converter string como "1-jul-25" para datetime
+                data_str_raw = str(data)
+                if '-' in data_str_raw:
+                    try:
+                        # Converte "1-jul-25" para datetime
+                        data_obj = datetime.strptime(data_str_raw, '%d-%b-%y')
+                        data_str = data_obj.strftime('%Y-%m')
+                    except:
+                        # Fallback: pega os primeiros 7 caracteres se for formato diferente
+                        data_str = data_str_raw[:7]
+                    else:
+                        data_str = str(data).split()[0][:7]
+        except:
+            return None
+        
+        return f"{nome}|{curso}|{cliente}|{data_str}"
+    
+    def extrair_chave_destino(self, row):
+        """Extrai chave única para comparação do Destino - CORRIGIDA"""
+        try:
+            # Pega os dados básicos
+            first_name = str(row.get('First Name', '')).strip()
+            last_name = str(row.get('Last Name', '')).strip()
+            
+            # Verifica se tem pelo menos o primeiro nome
+            if not first_name:
+                return None
+                
+            nome = self.normalizar_nome(f"{first_name} {last_name}")
+            if not nome:
+                return None
+            
+            curso = self.normalizar_curso(row.get('Assessment', ''))
+            cliente = self.normalizar_cliente(row.get('Client', ''))
+            data_str = str(row.get('Scheduled Date (DD/MM/YYYY)', ''))
+            
+            # CORREÇÃO: Verificações mais flexíveis
+            if not curso or not cliente or not data_str or data_str == 'nan':
+                return None
+            
+            # CORREÇÃO: Converte data do formato DD/MM/YYYY para YYYY-MM
+            try:
+                if '/' in data_str:
+                    parts = data_str.split('/')
+                    if len(parts) == 3:
+                        day, month, year = parts
+                        # Garante que o ano tenha 4 dígitos
+                        if len(year) == 2:
+                            year = '20' + year
+                        data_iso = f"{year}-{month}"
+                    else:
+                        return None
+                else:
+                    return None
+            except:
+                return None
+        
+        return f"{nome}|{curso}|{cliente}|{data_iso}"
+    
+        except Exception as e:
+            print(f"❌ Erro ao processar linha do Destino: {e}")
+            return None
+
+    def extrair_chave_destino(self, row):
+        """Extrai chave única para comparação do Destino - VERSÃO COMPLETA"""
+        nome = self.normalizar_nome(f"{row.get('First Name', '')} {row.get('Last Name', '')}")
+        if not nome:
+            return None
+        
+        curso = self.normalizar_curso(row.get('Assessment', ''))
+        cliente = self.normalizar_cliente(row.get('Client', ''))
+        data_str = str(row.get('Scheduled Date (DD/MM/YYYY)', ''))
+        
+        if not data_str or not curso:
+            return None
+        
+        # Converte data do formato DD/MM/YYYY para YYYY-MM (apenas mês)
+        try:
+            parts = data_str.split('/')
+            if len(parts) == 3:
+                data_iso = f"{parts[2]}-{parts[1]}"
+            else:
+                return None
+        except:
+            return None
+        
+        return f"{nome}|{curso}|{cliente}|{data_iso}"
+    
+    def comparar_planilhas_inteligente(self):
+        """Comparação inteligente com matching flexível - VERSÃO COMPLETA"""
+        print("\n🔍 INICIANDO COMPARAÇÃO INTELIGENTE...")
+        print("   📋 Critérios: Nome + Curso + Cliente + Data")
+        print("   ✅ Filtros: Status=Completed, sem NO SHOW, sem Waived")
+        
+        # Coletar estatísticas para debug
+        stats = {
+            'kryterion_total': 0,
+            'kryterion_validos': 0,
+            'destino_total': 0, 
+            'destino_validos': 0,
+            'matches': 0
+        }
+        
+        # Processar Kryterion
+        registros_kryterion = {}
+        print(f"\n📊 Processando Kryterion...")
         
         for idx, row in self.planilha_kryterion.iterrows():
-            candidato = row.get('Candidato', '')
-            if pd.notna(candidato) and candidato != "":
-                # Limpa o nome - remove números no início e conteúdo entre {}
-                nome_limpo = str(candidato).strip()
-                # Remove padrões como "1 Nome" ou "{algo} Nome"
-                if nome_limpo and not nome_limpo.startswith(('{', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9')):
-                    # Remove conteúdo entre chaves se houver
-                    nome_limpo = nome_limpo.split('{')[0].strip()
-                    nomes_kryterion.add(nome_limpo.upper())
+            stats['kryterion_total'] += 1
+            chave = self.extrair_chave_kryterion(row)
+            if chave:
+                registros_kryterion[chave] = row
+                stats['kryterion_validos'] += 1
         
-        return nomes_kryterion
-    
-    def extrair_nomes_destino(self):
-        """Extrai nomes combinando First Name + Last Name do Destino"""
-        nomes_destino = set()
+        # DEBUG: Verificar primeiras linhas do Destino - COLOQUE AQUI
+        print(f"\n🔍 DEBUG - ANALISANDO DESTINO:")
+        for i in range(min(3, len(self.planilha_destino))):
+            row = self.planilha_destino.iloc[i]
+            print(f"   Linha {i+1}:")
+            print(f"      First Name: '{row.get('First Name', '')}'")
+            print(f"      Last Name: '{row.get('Last Name', '')}'")
+            print(f"      Assessment: '{row.get('Assessment', '')}'")
+            print(f"      Client: '{row.get('Client', '')}'")
+            print(f"      Scheduled Date: '{row.get('Scheduled Date (DD/MM/YYYY)', '')}'")
+            
+            chave = self.extrair_chave_destino(row)
+            print(f"      Chave gerada: {chave}")
+            print()
+        
+        # Processar Destino
+        registros_destino = {}
+        print(f"📊 Processando Destino...")
         
         for idx, row in self.planilha_destino.iterrows():
-            first_name = row.get('First Name', '')
-            last_name = row.get('Last Name', '')
-            
-            if pd.notna(first_name) and first_name != "":
-                nome_completo = f"{first_name} {last_name}".strip() if pd.notna(last_name) else first_name
-                if nome_completo:
-                    nomes_destino.add(nome_completo.upper())
+            stats['destino_total'] += 1
+            chave = self.extrair_chave_destino(row)
+            if chave:
+                registros_destino[chave] = row
+                stats['destino_validos'] += 1
         
-        return nomes_destino
-    
-    def comparar_planilhas(self):
-        """Comparação simples entre as planilhas"""
-        print("\n🔍 INICIANDO COMPARAÇÃO...")
+        # Encontrar matches
+        chaves_kryterion = set(registros_kryterion.keys())
+        chaves_destino = set(registros_destino.keys())
         
-        # Extrai nomes
-        nomes_kryterion = self.extrair_nomes_kryterion()
-        nomes_destino = self.extrair_nomes_destino()
+        matches = chaves_kryterion.intersection(chaves_destino)
+        stats['matches'] = len(matches)
         
-        print(f"📊 Kryterion: {len(nomes_kryterion)} nomes únicos")
-        print(f"📊 Destino: {len(nomes_destino)} nomes únicos")
+        kryterion_para_destino = chaves_kryterion - chaves_destino
+        destino_para_kryterion = chaves_destino - chaves_kryterion
         
-        # Mostra alguns exemplos
-        print(f"\n📝 EXEMPLOS KRYTERION (5 primeiros):")
-        for i, nome in enumerate(list(nomes_kryterion)[:5]):
-            print(f"   {i+1}. {nome}")
-        
-        print(f"\n📝 EXEMPLOS DESTINO (5 primeiros):")
-        for i, nome in enumerate(list(nomes_destino)[:5]):
-            print(f"   {i+1}. {nome}")
-        
-        # Encontra diferenças
-        kryterion_para_destino = nomes_kryterion - nomes_destino
-        destino_para_kryterion = nomes_destino - nomes_kryterion
-        
+        # RESULTADOS
         print(f"\n📊 RESULTADOS:")
+        print(f"   ✅ Matches encontrados: {stats['matches']}")
         print(f"   ➡️  Só na Kryterion: {len(kryterion_para_destino)}")
         print(f"   ⬅️  Só no Destino: {len(destino_para_kryterion)}")
+        print(f"   📊 Kryterion: {stats['kryterion_validos']}/{stats['kryterion_total']} válidos")
+        print(f"   📊 Destino: {stats['destino_validos']}/{stats['destino_total']} válidos")
         
-        return kryterion_para_destino, destino_para_kryterion
+        # DEBUG DETALHADO - Mostrar exemplos reais
+        self.mostrar_debug_detalhado(registros_kryterion, registros_destino, matches, kryterion_para_destino)
+        
+        return kryterion_para_destino, destino_para_kryterion, stats['matches']
+    def mostrar_debug_detalhado(self, registros_kryterion, registros_destino, matches, kryterion_para_destino):
+        """Mostra debug detalhado do processo de matching"""
+        
+        # 1. MOSTRAR ALGUNS MATCHES ENCONTRADOS
+        if matches:
+            print(f"\n🎯 EXEMPLOS DE MATCHES (3 primeiros):")
+            for i, chave in enumerate(list(matches)[:3]):
+                partes = chave.split('|')
+                if len(partes) == 4:
+                    nome, curso, cliente, data = partes
+                    print(f"   {i+1}. {nome}")
+                    
+                    # Dados da Kryterion
+                    if chave in registros_kryterion:
+                        row_k = registros_kryterion[chave]
+                        print(f"      Kryterion: {row_k.get('Candidato ', '')} | {row_k.get('Exam', '')} | {row_k.get('Cliente ', '')} | {row_k.get('Data', '')}")
+                    
+                    # Dados do Destino  
+                    if chave in registros_destino:
+                        row_d = registros_destino[chave]
+                        print(f"      Destino:  {row_d.get('First Name', '')} {row_d.get('Last Name', '')} | {row_d.get('Assessment', '')} | {row_d.get('Client', '')} | {row_d.get('Scheduled Date (DD/MM/YYYY)', '')}")
+                    print()
+        
+        # 2. MOSTRAR CANDIDATOS QUE PRECISAM SER ADICIONADOS
+        if kryterion_para_destino:
+            print(f"\n📝 CANDIDATOS PARA ADICIONAR (5 primeiros):")
+            for i, chave in enumerate(list(kryterion_para_destino)[:5]):
+                partes = chave.split('|')
+                if len(partes) == 4:
+                    nome, curso, cliente, data = partes
+                    
+                    if chave in registros_kryterion:
+                        row_k = registros_kryterion[chave]
+                        print(f"   {i+1}. {row_k.get('Candidato ', '')}")
+                        print(f"      Curso: {row_k.get('Exam', '')}")
+                        print(f"      Cliente: {row_k.get('Cliente ', '')}") 
+                        print(f"      Data: {row_k.get('Data', '')}")
+                        print(f"      Status: {row_k.get('Status', '')}")
+                        print()
+        
+        # 3. ESTATÍSTICAS DE CLIENTES
+        clientes_kryterion = set()
+        clientes_destino = set()
+        
+        for chave in registros_kryterion:
+            partes = chave.split('|')
+            if len(partes) == 4:
+                clientes_kryterion.add(partes[2])
+        
+        for chave in registros_destino:
+            partes = chave.split('|')
+            if len(partes) == 4:
+                clientes_destino.add(partes[2])
+        
+        print(f"\n🏢 ESTATÍSTICAS DE CLIENTES:")
+        print(f"   Kryterion: {len(clientes_kryterion)} clientes → {sorted(clientes_kryterion)}")
+        print(f"   Destino: {len(clientes_destino)} clientes → {sorted(clientes_destino)}")
     
-    def encontrar_linha_kryterion_por_nome(self, nome_procurado):
-        """Encontra a linha completa na Kryterion pelo nome"""
+    def encontrar_linha_kryterion_por_chave(self, chave):
+        """Encontra a linha na Kryterion pela chave de comparação"""
         for idx, row in self.planilha_kryterion.iterrows():
-            candidato = row.get('Candidato', '')
-            if pd.notna(candidato):
-                candidato_limpo = str(candidato).strip().upper()
-                # Remove conteúdo entre chaves para comparação
-                candidato_limpo = candidato_limpo.split('{')[0].strip()
-                if nome_procurado.upper() == candidato_limpo:
-                    return row
+            chave_atual = self.extrair_chave_kryterion(row)
+            if chave_atual == chave:
+                return row
         return None
     
     def mapear_para_formato_destino(self, linha_kryterion):
         """Mapeia os dados da Kryterion para o formato do Destino - 100% DOS DADOS REAIS"""
         
         # Extrai nome completo da Kryterion
-        nome_completo_kryterion = str(linha_kryterion.get('Candidato', '')).strip()
+        nome_completo_kryterion = str(linha_kryterion.get('Candidato ', '')).strip()
         # Remove conteúdo entre chaves do nome
         nome_completo_kryterion = nome_completo_kryterion.split('{')[0].strip()
         
@@ -206,8 +469,8 @@ class ComparadorPlanilhasKryterion:
         # Pega TODOS os dados REAIS da Kryterion
         data_kryterion = linha_kryterion.get('Data')
         hora_inicio_kryterion = linha_kryterion.get('Hora Início Real')
-        cliente_kryterion = linha_kryterion.get('Cliente')
-        exam_kryterion = linha_kryterion.get('Exam')
+        cliente_kryterion = linha_kryterion.get('Cliente ', '')
+        exam_kryterion = linha_kryterion.get('Exam', '')
         
         # Formata data e hora - mantém os valores originais
         data_formatada = self.formatar_data(data_kryterion)
@@ -222,12 +485,12 @@ class ComparadorPlanilhasKryterion:
         
         # Cria registro com dados REAIS
         novo_registro = {
-            'Testing Location': 'Informaker Informatica_Sao Paulo',  # Único campo fixo
-            'Client': cliente_kryterion if pd.notna(cliente_kryterion) else 'ServiceNow',
+            'Testing Location': 'Informaker Informatica_Sao Paulo',
+            'Client': cliente_kryterion,
             'First Name': first_name,
             'Last Name': last_name,
-            'Assessment': exam_kryterion if pd.notna(exam_kryterion) else 'Certified System Administrator',
-            'Time Limit (minutes)': 90,  # Campo fixo
+            'Assessment': exam_kryterion,
+            'Time Limit (minutes)': 90,
             'Scheduled Date (DD/MM/YYYY)': data_formatada,
             'Scheduled Time': hora_formatada,
         }
@@ -264,21 +527,24 @@ class ComparadorPlanilhasKryterion:
         except:
             return ""
     
-    def adicionar_candidatos_faltantes(self, nomes_faltantes):
+    def adicionar_candidatos_faltantes(self, chaves_faltantes):
         """Adiciona candidatos faltantes da Kryterion para o Destino"""
         try:
-            if not nomes_faltantes:
+            if not chaves_faltantes:
                 print("✅ Nenhum candidato para adicionar")
                 return self.planilha_destino
             
-            print(f"\n📝 Preparando para adicionar {len(nomes_faltantes)} candidatos...")
+            print(f"\n📝 Preparando para adicionar {len(chaves_faltantes)} candidatos...")
             
             novos_registros = []
-            for nome in nomes_faltantes:
-                print(f"\n🔍 Processando: {nome}")
+            for chave in chaves_faltantes:
+                partes = chave.split('|')
+                if len(partes) == 4:
+                    nome, curso, cliente, data = partes
+                    print(f"\n🔍 Processando: {nome} | {curso} | {cliente} | {data}")
                 
                 # Encontra a linha completa na Kryterion
-                linha_kryterion = self.encontrar_linha_kryterion_por_nome(nome)
+                linha_kryterion = self.encontrar_linha_kryterion_por_chave(chave)
                 
                 if linha_kryterion is not None:
                     # Mapeia os dados REAIS para o formato do Destino
@@ -286,7 +552,7 @@ class ComparadorPlanilhasKryterion:
                     novos_registros.append(novo_registro)
                     print(f"   ✅ Dados mapeados com sucesso")
                 else:
-                    print(f"   ❌ Linha não encontrada na Kryterion para: {nome}")
+                    print(f"   ❌ Linha não encontrada na Kryterion para: {chave}")
             
             if novos_registros:
                 df_novos = pd.DataFrame(novos_registros)
@@ -317,24 +583,38 @@ class ComparadorPlanilhasKryterion:
             # Salva organizando por meses nas abas
             with pd.ExcelWriter(caminho_saida, engine='openpyxl') as writer:
                 
-                # Separa os dados por mês baseado na data
+                # Separa os dados por mês baseado na data - CORREÇÃO
                 meses = {
                     '07-2025': [],
-                    '08-2025': [],
+                    '08-2025': [], 
                     '09-2025': []
                 }
                 
                 for idx, row in dataframe.iterrows():
                     data_str = str(row.get('Scheduled Date (DD/MM/YYYY)', ''))
                     
-                    if any(x in data_str for x in ['07/2025', '/07/', '07-2025']):
+                    # CORREÇÃO: Verificação mais precisa das datas
+                    try:
+                        # Converte a string de data para objeto datetime
+                        if '/' in data_str:
+                            day, month, year = data_str.split('/')
+                            if len(day) == 2 and len(month) == 2 and len(year) == 4:
+                                # Verifica o mês para classificar na aba correta
+                                if month == '07':
+                                    meses['07-2025'].append(row)
+                                elif month == '08':
+                                    meses['08-2025'].append(row)
+                                elif month == '09':
+                                    meses['09-2025'].append(row)
+                                else:
+                                    # Se for outro mês, classifica pelo ano-mês
+                                    meses['07-2025'].append(row)
+                            else:
+                                meses['07-2025'].append(row)
+                        else:
+                            meses['07-2025'].append(row)
+                    except:
                         meses['07-2025'].append(row)
-                    elif any(x in data_str for x in ['08/2025', '/08/', '08-2025']):
-                        meses['08-2025'].append(row)
-                    elif any(x in data_str for x in ['09/2025', '/09/', '09-2025']):
-                        meses['09-2025'].append(row)
-                    else:
-                        meses['07-2025'].append(row)  # Default
                 
                 # Salva cada aba
                 for mes, registros in meses.items():
@@ -342,6 +622,11 @@ class ComparadorPlanilhasKryterion:
                         df_mes = pd.DataFrame(registros)
                         df_mes.to_excel(writer, sheet_name=mes, index=False)
                         print(f"   💾 Aba {mes}: {len(registros)} registros")
+                    else:
+                        # Cria aba vazia para manter a estrutura
+                        df_vazio = pd.DataFrame(columns=dataframe.columns)
+                        df_vazio.to_excel(writer, sheet_name=mes, index=False)
+                        print(f"   💾 Aba {mes}: 0 registros (vazia)")
             
             print(f"💾 Planilha salva: {caminho_saida}")
             return True
@@ -351,12 +636,13 @@ class ComparadorPlanilhasKryterion:
             return False
 
 def executar_comparacao_planilhas():
-    """Função principal - 100% DADOS REAIS"""
+    """Função principal - COMPARAÇÃO INTELIGENTE"""
     print("\n" + "="*60)
-    print("🔍 COMPARADOR DE PLANILHAS - DADOS REAIS")
+    print("🔍 COMPARADOR DE PLANILHAS - COMPARAÇÃO INTELIGENTE")
     print("="*60)
     print("📁 COMPARACAO1 (Kryterion) ↔ COMPARACAO2 (Destino)")
-    print("⚠️  TODOS OS DADOS VIRÃO DAS PLANILHAS ORIGINAIS")
+    print("🎯 Critérios: Nome + Curso + Cliente + Data")
+    print("✅ Filtros: Completed, sem NO SHOW, sem Waived")
     print("="*60)
     
     comparador = ComparadorPlanilhasKryterion()
@@ -372,15 +658,18 @@ def executar_comparacao_planilhas():
         print("❌ Falha ao carregar Destino")
         return
     
-    # Comparação
+    # Comparação INTELIGENTE
     print("\n🔍 COMPARANDO...")
-    kryterion_para_destino, destino_para_kryterion = comparador.comparar_planilhas()
+    kryterion_para_destino, destino_para_kryterion, matches_encontrados = comparador.comparar_planilhas_inteligente()
     
     # Processa resultados
     if kryterion_para_destino:
-        print(f"\n❌ CANDIDATOS SÓ NA KRYTERION ({len(kryterion_para_destino)}):")
-        for i, nome in enumerate(list(kryterion_para_destino)[:20]):
-            print(f"   {i+1:2d}. {nome}")
+        print(f"\n❌ CANDIDATOS VÁLIDOS SÓ NA KRYTERION ({len(kryterion_para_destino)}):")
+        for i, chave in enumerate(list(kryterion_para_destino)[:20]):
+            partes = chave.split('|')
+            if len(partes) == 4:
+                nome, curso, cliente, data = partes
+                print(f"   {i+1:2d}. {nome} | {curso} | {cliente} | {data}")
         
         if len(kryterion_para_destino) > 20:
             print(f"   ... e mais {len(kryterion_para_destino) - 20}")
@@ -396,8 +685,11 @@ def executar_comparacao_planilhas():
     if destino_para_kryterion:
         print(f"\n⚠️  CANDIDATOS SÓ NO DESTINO ({len(destino_para_kryterion)}):")
         print("(Apenas para informação)")
-        for i, nome in enumerate(list(destino_para_kryterion)[:10]):
-            print(f"   {i+1:2d}. {nome}")
+        for i, chave in enumerate(list(destino_para_kryterion)[:10]):
+            partes = chave.split('|')
+            if len(partes) == 4:
+                nome, curso, cliente, data = partes
+                print(f"   {i+1:2d}. {nome} | {curso} | {cliente} | {data}")
     
     if not kryterion_para_destino and not destino_para_kryterion:
         print("✅ Planilhas idênticas!")
