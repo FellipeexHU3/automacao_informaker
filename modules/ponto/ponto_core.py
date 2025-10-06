@@ -4,7 +4,7 @@ from datetime import datetime
 import logging
 from typing import Dict, Optional
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 class PontoAutomacao:
@@ -41,6 +41,8 @@ class PontoAutomacao:
         Types: 'entrada', 'almoco', 'volta', 'saida'
         """
         try:
+            logger.info(f"Iniciando registro de ponto: {tipo_ponto}")
+            
             if not self.navegar_para_ponto():
                 return False
             
@@ -72,7 +74,7 @@ class PontoAutomacao:
                 'status': 'sucesso'
             }
             
-            logger.info(f"Ponto {tipo_ponto} registrado com sucesso!")
+            logger.info(f"Ponto {tipo_ponto} registrado com sucesso às {datetime.now().strftime('%H:%M:%S')}!")
             return True
             
         except Exception as e:

@@ -300,7 +300,7 @@ def _ler_planilha(nome, caminho_env, coluna_env, aba_env, header=0):
                 
                 retorno = {
                     "tipo": nome,
-                    "quantidade": quantidade,
+                    "quantidade": total_geral,
                     "valor_total": float(valor_total),
                     "moeda": "US$",
                     "relatorio_detalhado": relatorio_detalhado  # ✅ ADICIONA RELATÓRIO AOS DADOS

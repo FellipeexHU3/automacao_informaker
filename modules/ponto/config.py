@@ -25,3 +25,5 @@ NOMES_PONTO = {
     'volta': 'Volta do Almoço',
     'saida': 'Saída'
 }
+# Configurações de agendamento
+SEGUNDOS_ANTECEDENCIA = 7  # Executar 7 segundos antes do horário
