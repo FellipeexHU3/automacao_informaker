@@ -10,7 +10,8 @@ def menu_principal():
     print("2 - 📄 AUTOMAÇÃO NFE")
     print("3 - 🔐 SISTEMA DE LOGIN")
     print("4 - ⏰ AUTOMAÇÃO DE PONTO")
-    print("5 - 🚪 SAIR")
+    print("5 - 📋 UTILS")
+    print("6 - 🚪 SAIR")
     print("=" * 60)
     
     opcao = input("\n🎯 Digite sua opção: ").strip()
@@ -24,6 +25,8 @@ def menu_principal():
     elif opcao == "4":
         executar_automacao_ponto()
     elif opcao == "5":
+        executar_utils()
+    elif opcao == "6":
         print("👋 Até mais! Obrigado por usar o sistema!")
         return False
     else:
@@ -104,6 +107,27 @@ def executar_automacao_ponto():
     except ImportError as e:
         print(f"❌ Erro ao carregar módulo de ponto: {e}")
         input("Pressione Enter para continuar...")
+        
+def executar_utils():
+    """Executa o sistema utils"""
+    print("\n" + "=" * 40)
+    print("📋 INICIANDO UTILS")
+    print("=" * 40)
+    
+    # Importação dentro da função para evitar conflitos
+    try:
+        from app_utils import menu_utils
+        
+        # Cria uma versão adaptada do menu
+        def menu_adaptado():
+            while True:
+                if not menu_utils():
+                    break
+        menu_adaptado()
+        
+    except ImportError as e:
+        print(f"❌ Erro ao carregar módulo utils: {e}")
+        input("Pressione Enter para continuar...")        
 
 def main():
     """Função principal do sistema unificado"""
