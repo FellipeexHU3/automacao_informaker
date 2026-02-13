@@ -50,7 +50,9 @@ def bater_ponto(horario):
         time.sleep(0.5)
         pyautogui.click(1080, 375)
         time.sleep(0.5)
-        """ pyautogui.click(171, 420) """
+        pyautogui.click(171, 420) # salvar
+        time.sleep(0.5)
+        pyautogui.press('enter')
         print("🎉 Ponto registrado com sucesso!")
 
     except Exception as e:

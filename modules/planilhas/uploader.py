@@ -1,10 +1,9 @@
 import pyautogui
-import time
-from dotenv import load_dotenv  
+import time 
+import sys
 import os
+from core.config import config
 
-# Carregar variáveis do .env uma vez no início
-load_dotenv() 
 def executar_sequencia_navegacao(dados_planilha):
     """Executa sequência de navegação até o formulário"""
     print("🖱️ EXECUTANDO SEQUÊNCIA DE NAVEGAÇÃO...")
@@ -28,10 +27,12 @@ def executar_sequencia_navegacao(dados_planilha):
         print(f"⌨️ Digitando nome da planilha: {dados_planilha['tipo']}")
         if dados_planilha['tipo'] == "VUE":
             pyautogui.write("VUE")# Nome correto para VUE
-        elif dados_planilha['tipo'] == "Kryterion":
-            pyautogui.write("Kryterion")  # Nome correto para Kryterion
+        elif dados_planilha['tipo'] == "KRYTERION":
+            pyautogui.write("KRYTERION")  # Nome correto para KRYTERION
         elif dados_planilha['tipo'] == "PSI":
-            pyautogui.write("PSI")       # Nome correto para PSI
+            pyautogui.write("PSI")
+        elif dados_planilha['tipo'] == "SCANTRON":
+            pyautogui.write("SCANTRON")
         else:
             pyautogui.write(dados_planilha['tipo']) # Usa o próprio tipo como fallback
         time.sleep(0.5)
@@ -89,11 +90,11 @@ def executar_sequencia_navegacao(dados_planilha):
         pyautogui.hotkey('ctrl', 'a')
         time.sleep(0.5)
         print("🖱️ Obtendo caminho da planilha")
-        pyautogui.write(os.path.dirname(obter_caminho_planilha(dados_planilha['tipo'])))
+        pyautogui.write(os.path.dirname(config.obter_caminho_planilha(dados_planilha['tipo'])))
         time.sleep(0.5)
         pyautogui.press('enter')
         pyautogui.press('enter')
-        time.sleep(15)  # Espera a janela abrir
+        time.sleep(7)  # Espera a janela abrir
         pyautogui.press('f6')
         time.sleep(0.2)
         pyautogui.press('f6')
@@ -104,7 +105,7 @@ def executar_sequencia_navegacao(dados_planilha):
         time.sleep(0.2)
         pyautogui.press('f6')
         time.sleep(0.2)
-        pyautogui.write(str(os.path.basename(obter_caminho_planilha(dados_planilha['tipo']))))
+        pyautogui.write(str(os.path.basename(config.obter_caminho_planilha(dados_planilha['tipo']))))
         time.sleep(0.5)
         pyautogui.press('enter')    
         time.sleep(3) 
@@ -117,7 +118,7 @@ def executar_sequencia_navegacao(dados_planilha):
         time.sleep(1)
         pyautogui.write(str(observacao))
         pyautogui.press('enter')
-        time.sleep(7)  # Espera o upload completar 
+        time.sleep(5)  # Espera o upload completar 
         print("✅ Navegação concluída!")
         input("\nPressione Enter para continuar...")
         return True
@@ -142,7 +143,9 @@ def selecionar_tipo_planilha(tipo_planilha):
         elif tipo_planilha == "Kryterion":
             pyautogui.write("kryterion")    # Código para Kryterion
         elif tipo_planilha == "PSI":
-            pyautogui.write("psi")    # Código para PSI
+            pyautogui.write("psi")
+        elif tipo_planilha == "SCANTRON":
+            pyautogui.write("scantron")
 
         time.sleep(0.5)
         pyautogui.click(410, 345) # confirmar botão GO
@@ -160,18 +163,3 @@ def selecionar_tipo_planilha(tipo_planilha):
     except Exception as e:
         print(f"❌ Erro ao selecionar tipo: {e}")
         return False
-
-def obter_caminho_planilha(tipo_planilha):
-    """Retorna o caminho da planilha baseado no tipo"""
-    from dotenv import load_dotenv
-    import os
-    load_dotenv()
-    
-    if tipo_planilha == "VUE":
-        return os.getenv('CAMINHO_PLANILHA_VUE')
-    elif tipo_planilha == "KRYTERION":
-        return os.getenv('CAMINHO_PLANILHA_KRYTERION')
-    elif tipo_planilha == "PSI":
-        return os.getenv('CAMINHO_PLANILHA_PSI')
-    else:
-        return None
